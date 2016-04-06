@@ -67,3 +67,7 @@ func (dss *DataSources) AddDataSource(ds DataSource) error {
 	dss.metaNouns.dataSourceAdded(ds)
 	return nil
 }
+
+// TODO: do we really need to support removing data sources?  I can see the
+// case for intermediaries perhaps, and suspect that is needed... but punting
+// for now.
