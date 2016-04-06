@@ -36,7 +36,13 @@ func NewDataSources() *DataSources {
 		sources: make(map[string]DataSource, 2),
 	}
 	dss.metaNouns.sources = dss
-	dss.AddDataSource(&dss.metaNouns)
+	dss.AddDataSource(NewMarshaledDataSource(
+		&dss.metaNouns,
+		map[string]GenericDataMarshal{
+			"json": LDJSONMarshal,
+			"text": nounsTextMarshal,
+		},
+	))
 	return dss
 }
 
