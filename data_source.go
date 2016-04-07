@@ -62,6 +62,15 @@ func (dss *DataSources) init() {
 	dss.AddMarshaledDataSource(&dss.metaNouns)
 }
 
+// Get returns the named data source or nil if none is defined.
+func (dss *DataSources) Get(name string) DataSource {
+	source, ok := dss.sources[name]
+	if ok {
+		return source
+	}
+	return nil
+}
+
 // Info returns a map of all DataSource.Info() data
 func (dss *DataSources) Info() map[string]DataSourceInfo {
 	info := make(map[string]DataSourceInfo, len(dss.sources))
