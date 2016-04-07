@@ -5,7 +5,7 @@ import "io"
 // writes buff to one or more writers, returns a list of the writers that
 // worked
 func writeToEach(buf []byte, writers []io.Writer) []io.Writer {
-	failed := make([]int, len(writers))
+	failed := make([]int, 0, len(writers))
 	for i, w := range writers {
 		if _, err := w.Write(buf); err != nil {
 			failed = append(failed, i)
