@@ -22,7 +22,7 @@ type MarshaledDataSource struct {
 	source      GenericDataSource
 	formats     map[string]GenericDataMarshal
 	formatNames []string
-	watchers    map[string]genericWatcher
+	watchers    map[string]*genericWatcher
 	watching    bool
 }
 
@@ -114,10 +114,10 @@ func NewMarshaledDataSource(
 	}
 
 	var formatNames []string
-	watchers := make(map[string]genericWatcher, len(formats))
+	watchers := make(map[string]*genericWatcher, len(formats))
 	for name, format := range formats {
 		formatNames = append(formatNames, name)
-		watchers[name] = genericWatcher{
+		watchers[name] = &genericWatcher{
 			source:  source,
 			format:  format,
 			writers: nil,
