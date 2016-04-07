@@ -86,6 +86,10 @@ func (gw *genericWatcher) init(w io.Writer) error {
 }
 
 func (gw *genericWatcher) emit(data interface{}) bool {
+	if len(gw.writers) == 0 {
+		return false
+	}
+
 	buf, err := gw.format.Frame(data)
 	if err != nil {
 		return false
