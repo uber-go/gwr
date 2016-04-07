@@ -1,7 +1,7 @@
 package gwr
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"strings"
 	"text/template"
@@ -64,6 +64,10 @@ type genericWatcher struct {
 	format  GenericDataMarshal
 	writers []io.Writer
 }
+
+// ErrUnsupportedFormat is returned by the MarshaledDataSource Get and Watch
+// methods when the requested formatName has no GenericDataMarshal defined.
+var ErrUnsupportedFormat = errors.New("unsupported format")
 
 func (gw *genericWatcher) init(w io.Writer) error {
 	if data := gw.source.GetInit(); data != nil {
@@ -139,7 +143,7 @@ func (mds *MarshaledDataSource) Info() DataSourceInfo {
 func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
 	format, ok := mds.formats[strings.ToLower(formatName)]
 	if !ok {
-		return fmt.Errorf("unsupported format")
+		return ErrUnsupportedFormat
 	}
 	data := mds.source.Get()
 	buf, err := format.Marshal(data)
@@ -156,7 +160,7 @@ func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
 func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
 	watcher, ok := mds.watchers[strings.ToLower(formatName)]
 	if !ok {
-		return fmt.Errorf("unsupported format")
+		return ErrUnsupportedFormat
 	}
 
 	if err := watcher.init(w); err != nil {
