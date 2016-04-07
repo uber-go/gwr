@@ -36,13 +36,7 @@ func NewDataSources() *DataSources {
 		sources: make(map[string]DataSource, 2),
 	}
 	dss.metaNouns.sources = dss
-	dss.AddDataSource(NewMarshaledDataSource(
-		&dss.metaNouns,
-		map[string]GenericDataMarshal{
-			"json": LDJSONMarshal,
-			"text": nounsTextMarshal,
-		},
-	))
+	dss.AddMarshaledDataSource(&dss.metaNouns)
 	return dss
 }
 
@@ -53,6 +47,14 @@ func (dss *DataSources) Info() map[string]DataSourceInfo {
 		info[name] = ds.Info()
 	}
 	return info
+}
+
+// AddMarshaledDataSource adds a generically-marshaled data source. It is a
+// convenience for AddDataSource(NewMarshaledDataSource(gds, nil))
+func (dss *DataSources) AddMarshaledDataSource(gds GenericDataSource) error {
+	mds := NewMarshaledDataSource(gds, nil)
+	// TODO: useful to return mds?
+	return dss.AddDataSource(mds)
 }
 
 // AddDataSource adds a DataSource, if none is

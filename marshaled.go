@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"text/template"
 )
 
 // TODO: punts on any locking concerns
@@ -44,8 +45,9 @@ type GenericDataSource interface {
 
 // GenericDataSourceInfo describes a format-agnostic data source
 type GenericDataSourceInfo struct {
-	Name  string
-	Attrs map[string]interface{}
+	Name         string
+	Attrs        map[string]interface{}
+	TextTemplate *template.Template
 }
 
 // GenericDataMarshal provides both a data marshaling protocol and a framing
@@ -94,7 +96,15 @@ func NewMarshaledDataSource(
 	source GenericDataSource,
 	formats map[string]GenericDataMarshal,
 ) *MarshaledDataSource {
-	// TODO: assert len(formats) > 0
+	if len(formats) == 0 {
+		info := source.Info()
+		formats = make(map[string]GenericDataMarshal)
+		formats["json"] = LDJSONMarshal
+		if info.TextTemplate != nil {
+			formats["text"] = NewTemplatedMarshal(info.TextTemplate)
+		}
+	}
+
 	var formatNames []string
 	watchers := make(map[string]genericWatcher, len(formats))
 	for name, format := range formats {

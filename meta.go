@@ -2,13 +2,14 @@ package gwr
 
 import "text/template"
 
-var nounsTextMarshal = NewTemplatedMarshal(template.Must(template.New("meta_nouns_text").Parse(`
-{{ define "get" }}
-{{ range $name, $info := . }}
-{{ $name }} formats: {{ $info.Formats }}
-{{ end }}
-{{ end }}
-`)))
+var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(`
+{{- define "get" -}}
+Available Nouns:
+{{ range $name, $info := . -}}
+- {{ $name }} formats: {{ $info.Formats }}
+{{ end -}}
+{{- end -}}
+`))
 
 type dataSourceUpdate struct {
 	Type string
@@ -22,8 +23,9 @@ type metaNounDataSource struct {
 
 func (nds *metaNounDataSource) Info() GenericDataSourceInfo {
 	return GenericDataSourceInfo{
-		Name:  "/meta/nouns",
-		Attrs: nil,
+		Name:         "/meta/nouns",
+		Attrs:        nil,
+		TextTemplate: nounsTextTemplate,
 	}
 }
 
