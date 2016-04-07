@@ -17,9 +17,9 @@ type DataSource interface {
 // DataSourceInfo provides a description of each
 // data source, such as name and supported formats.
 type DataSourceInfo struct {
-	Name    string
-	Formats []string
-	Attrs   map[string]interface{}
+	Name    string                 `json:"name"`
+	Formats []string               `json:"formats"`
+	Attrs   map[string]interface{} `json:"attrs"`
 }
 
 // DataSources is a flat collection of DataSources
