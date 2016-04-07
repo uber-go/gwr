@@ -32,12 +32,15 @@ type DataSources struct {
 // NewDataSources creates a DataSources structure
 // an sets up its "/meta/nouns" data source.
 func NewDataSources() *DataSources {
-	dss := &DataSources{
-		sources: make(map[string]DataSource, 2),
-	}
+	dss := &DataSources{}
+	dss.init()
+	return dss
+}
+
+func (dss *DataSources) init() {
+	dss.sources = make(map[string]DataSource, 2)
 	dss.metaNouns.sources = dss
 	dss.AddMarshaledDataSource(&dss.metaNouns)
-	return dss
 }
 
 // Info returns a map of all DataSource.Info() data
