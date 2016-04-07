@@ -5,6 +5,25 @@ import (
 	"io"
 )
 
+// The default data sources registry which data sources are added to by the
+// module-level Add* functions.
+var DefaultDataSources DataSources
+
+func init() {
+	DefaultDataSources.init()
+}
+
+// AddDataSource adds a data source to the default data sources registry.
+func AddDataSource(ds DataSource) error {
+	return DefaultDataSources.AddDataSource(ds)
+}
+
+// AddMarshaledDataSource adds a generically marshaled data source to the
+// default data sources registry.
+func AddMarshaledDataSource(gds GenericDataSource) error {
+	return DefaultDataSources.AddMarshaledDataSource(gds)
+}
+
 // DataSource is the interface implemented by all
 // data sources.
 type DataSource interface {
