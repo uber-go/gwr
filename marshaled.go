@@ -3,6 +3,7 @@ package gwr
 import (
 	"errors"
 	"io"
+	"log"
 	"strings"
 	"text/template"
 )
@@ -74,6 +75,7 @@ func (gw *genericWatcher) init(w io.Writer) error {
 		format := gw.format
 		buf, err := format.FrameInit(data)
 		if err != nil {
+			log.Printf("inital framing error %v", err)
 			return err
 		}
 		_, err = w.Write(buf)
@@ -92,6 +94,7 @@ func (gw *genericWatcher) emit(data interface{}) bool {
 
 	buf, err := gw.format.Frame(data)
 	if err != nil {
+		log.Printf("framing error %v", err)
 		return false
 	}
 	gw.writers = writeToEach(buf, gw.writers)
@@ -152,6 +155,7 @@ func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
 	data := mds.source.Get()
 	buf, err := format.Marshal(data)
 	if err != nil {
+		log.Printf("marshaling error %v", err)
 		return err
 	}
 	_, err = w.Write(buf)
