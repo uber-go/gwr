@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"code.uber.internal/personal/joshua/gwr"
+	"code.uber.internal/personal/joshua/gwr/protocol"
 )
 
 func main() {
@@ -13,5 +14,13 @@ func main() {
 
 	gwr.AddMarshaledDataSource(reqLog)
 	gwr.AddMarshaledDataSource(resLog)
-	log.Fatal(http.ListenAndServe(":4040", reqLog))
+	go func() {
+		log.Fatal(http.ListenAndServe(":4040", reqLog))
+	}()
+
+	go func() {
+		log.Fatal(protocol.NewRedisServer(&gwr.DefaultDataSources).ListenAndServe(":6379"))
+	}()
+
+	select {}
 }
