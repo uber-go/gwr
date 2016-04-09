@@ -143,7 +143,8 @@ func (hndl *HTTPRest) doWatch(
 		return err
 	}
 
-	var buf = chanBuf{ready: make(chan struct{}, 1)}
+	ready := make(chan *chanBuf, 1)
+	var buf = chanBuf{ready: ready}
 	defer buf.close()
 
 	if err := source.Watch(formatName, &buf); err != nil {
@@ -173,7 +174,7 @@ func (hndl *HTTPRest) doWatch(
 
 	for {
 		select {
-		case <-buf.ready:
+		case <-ready:
 			if _, err := buf.writeTo(fw); err != nil {
 				return err
 			}

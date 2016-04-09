@@ -10,7 +10,7 @@ import (
 type chanBuf struct {
 	sync.Mutex
 	bytes.Buffer
-	ready   chan struct{}
+	ready   chan<- *chanBuf
 	closed  bool
 	pending bool
 	p       []byte
@@ -46,10 +46,7 @@ func (cb *chanBuf) Write(p []byte) (int, error) {
 	cb.Unlock()
 
 	if send {
-		// NOTE: should never block since chan has cap 1 and pending should
-		// ensure only ever one message is sent; however, in case that ever
-		// happens we do the send outside the lock here to avoid a deadlock
-		cb.ready <- struct{}{}
+		cb.ready <- cb
 	}
 	return n, err
 }
