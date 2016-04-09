@@ -24,6 +24,11 @@ func (cb *chanBuf) close() {
 
 var errBufClosed = errors.New("buffer closed")
 
+func (cb *chanBuf) Reset() {
+	cb.pending = false
+	cb.Buffer.Reset()
+}
+
 func (cb *chanBuf) Write(p []byte) (int, error) {
 	cb.Lock()
 
@@ -55,7 +60,6 @@ func (cb *chanBuf) writeTo(w io.Writer) (int, error) {
 
 func (cb *chanBuf) drain() []byte {
 	cb.Lock()
-	cb.pending = false
 	if cap(cb.p) < cb.Len() {
 		cb.p = make([]byte, cb.Len())
 	}
