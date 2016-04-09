@@ -4,7 +4,6 @@ import "text/template"
 
 var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(`
 {{- define "get" -}}
-Available Nouns:
 {{ range $name, $info := . -}}
 - {{ $name }} formats: {{ $info.Formats }}
 {{ end -}}
