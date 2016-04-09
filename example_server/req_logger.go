@@ -20,15 +20,22 @@ func logged(handler http.Handler) *reqLogger {
 
 var reqLogTextTemplate = template.Must(template.New("req_logger_text").Parse(`
 {{- define "item" -}}
-{{ .method }} {{ .URL }}
+{{ .Method }} {{ .Path }} {{ .Query }}
 {{ end -}}
 `))
 
+type reqInfo struct {
+	Method string `json:"method"`
+	Path   string `json:"path"`
+	Query  string `json:"query"`
+}
+
 func (rl *reqLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if rl.watcher != nil {
-		info := map[string]interface{}{
-			"method": r.Method,
-			"URL":    r.URL,
+		info := reqInfo{
+			Method: r.Method,
+			Path:   r.URL.Path,
+			Query:  r.URL.RawQuery,
 		}
 		if !rl.watcher(info) {
 			rl.watcher = nil
