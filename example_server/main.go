@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"code.uber.internal/personal/joshua/gwr"
-	"code.uber.internal/personal/joshua/gwr/protocol"
+	gwrProto "code.uber.internal/personal/joshua/gwr/protocol"
 )
 
 func main() {
@@ -14,13 +13,8 @@ func main() {
 
 	gwr.AddMarshaledDataSource(reqLog)
 	gwr.AddMarshaledDataSource(resLog)
-	go func() {
-		log.Fatal(http.ListenAndServe(":4040", reqLog))
-	}()
-
-	go func() {
-		log.Fatal(protocol.NewRedisServer(&gwr.DefaultDataSources).ListenAndServe(":6379"))
-	}()
-
-	select {}
+	gwrProto.ListenAndServe(map[string]string{
+		"http": ":4040",
+		"resp": ":4041",
+	})
 }
