@@ -34,7 +34,7 @@ func (nds *metaNounDataSource) Get() interface{} {
 	sources := nds.sources.sources
 	info := make(map[string]DataSourceInfo, len(sources))
 	for name, ds := range sources {
-		info[name] = ds.Info()
+		info[name] = dsInfo(ds)
 	}
 	return info
 }
@@ -49,6 +49,10 @@ func (nds *metaNounDataSource) Watch(watcher GenericDataWatcher) {
 
 func (nds *metaNounDataSource) dataSourceAdded(ds DataSource) {
 	if nds.watcher != nil {
-		nds.watcher(dataSourceUpdate{"add", ds.Info()})
+		nds.watcher(dataSourceUpdate{"add", dsInfo(ds)})
 	}
+}
+
+func dsInfo(ds DataSource) DataSourceInfo {
+	return ds.Info()
 }
