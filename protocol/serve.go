@@ -26,14 +26,25 @@ var ProtoListenAndServe = map[string]func(string) error{
 	"http": ListenAndServeHTTP,
 }
 
-// TODO: provide a default protoHostPorts based on environment variables
+// DefaultProtoHostPorts defines which protocol(s) and port(s) GWR listens on
+// by default.
+//
+// TODO: change based on environment variables, maybe also flags?
+var DefaultProtoHostPorts = map[string]string{
+	"http": ":4040",
+	"resp": ":4041",
+}
 
 // ListenAndServe starts one or more servers given a map of protocol name to
 // hostPort string.  Any errors are passed to log.Fatal.
 func ListenAndServe(protoHostPorts map[string]string) {
-	for proto := range protoHostPorts {
-		if ProtoListenAndServe[proto] == nil {
-			log.Fatalf("invalid protocol %v", proto)
+	if len(protoHostPorts) == 0 {
+		protoHostPorts = DefaultProtoHostPorts
+	} else {
+		for proto := range protoHostPorts {
+			if ProtoListenAndServe[proto] == nil {
+				log.Fatalf("invalid protocol %v", proto)
+			}
 		}
 	}
 

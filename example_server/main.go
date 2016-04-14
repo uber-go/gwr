@@ -9,10 +9,7 @@ import (
 
 func main() {
 	go func() {
-		gwrProto.ListenAndServe(map[string]string{
-			"http": ":4040",
-			"resp": ":4041",
-		})
+		gwrProto.ListenAndServe(nil)
 	}()
 
 	resLog := &resLogger{handler: http.DefaultServeMux}
