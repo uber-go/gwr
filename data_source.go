@@ -1,6 +1,7 @@
 package gwr
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -33,6 +34,10 @@ type DataSource interface {
 	Get(format string, w io.Writer) error
 	Watch(format string, w io.Writer) error
 }
+
+// ErrUnsupportedFormat should be returned by DataSource.Get and
+// DataSource.Watch if the requested format is not supported.
+var ErrUnsupportedFormat = errors.New("unsupported format")
 
 // DataSourceInfo provides a description of each
 // data source, such as name and supported formats.
