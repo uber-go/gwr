@@ -87,12 +87,26 @@ var (
 	ErrNotWatchable = errors.New("watch not supported, data source is get-only")
 )
 
-// DataSourceInfo provides a description of each
-// data source, such as name and supported formats.
+// DataSourceInfo provides a description of each data source.
 type DataSourceInfo struct {
+	// Name is the unique identifier (GWR noun path) for this source.
 	Name    string                 `json:"name"`
-	Formats []string               `json:"formats"`
-	Attrs   map[string]interface{} `json:"attrs"`
+
+	// Formats must contain all supported format names.
+	Formats []string `json:"formats"`
+
+	// NOTE: any supported attributes should go here, then we'll merge them in
+	// canonically during marshalling; current ideas include:
+	// - affording get-only or watch-only
+	// - affording sampling config (%-age, N-per-t, etc)
+	// - whether this data source is lossy (likely the default) or whether
+	//   attempts should be taken to drop no item (opt-in edge case); this
+	//   could be used internally at least to switch between an implementation
+	//   that drops data when buffers fill, or blocks and provides back
+	//   pressure.
+
+	// Attrs may contrain arbitrary descriptive data
+	Attrs map[string]interface{} `json:"attrs"`
 }
 
 // DataSources is a flat collection of DataSources
