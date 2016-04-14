@@ -35,9 +35,19 @@ type DataSource interface {
 	Watch(format string, w io.Writer) error
 }
 
-// ErrUnsupportedFormat should be returned by DataSource.Get and
-// DataSource.Watch if the requested format is not supported.
-var ErrUnsupportedFormat = errors.New("unsupported format")
+var (
+	// ErrUnsupportedFormat should be returned by DataSource.Get and
+	// DataSource.Watch if the requested format is not supported.
+	ErrUnsupportedFormat = errors.New("unsupported format")
+
+	// ErrNotGetable should be returned by DataSource.Get if the data source
+	// does not support get.
+	ErrNotGetable = errors.New("get not supported, data source is watch-only")
+
+	// ErrNotWatchable should be returned by DataSource.Get if the data source
+	// does not support watch.
+	ErrNotWatchable = errors.New("watch not supported, data source is get-only")
+)
 
 // DataSourceInfo provides a description of each
 // data source, such as name and supported formats.
