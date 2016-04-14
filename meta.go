@@ -49,7 +49,6 @@ func (nds *metaNounDataSource) Watch(watcher GenericDataWatcher) {
 
 func (nds *metaNounDataSource) dataSourceAdded(ds DataSource) {
 	if nds.watcher != nil {
-		update := dataSourceUpdate{"add", ds.Info()}
-		nds.watcher(update)
+		nds.watcher(dataSourceUpdate{"add", ds.Info()})
 	}
 }
