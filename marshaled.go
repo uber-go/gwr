@@ -103,10 +103,9 @@ func NewMarshaledDataSource(
 	formats map[string]GenericDataMarshal,
 ) *MarshaledDataSource {
 	if len(formats) == 0 {
-		info := source.Info()
 		formats = make(map[string]GenericDataMarshal)
 		formats["json"] = LDJSONMarshal
-		if info.TextTemplate != nil {
+		if info := source.Info(); info.TextTemplate != nil {
 			formats["text"] = NewTemplatedMarshal(info.TextTemplate)
 		}
 	}
