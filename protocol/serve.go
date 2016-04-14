@@ -7,7 +7,7 @@ import (
 	"code.uber.internal/personal/joshua/gwr"
 )
 
-// TODO: write a http+rest server that heuristically detects the protocol
+// TODO: write a http+resp server that heuristically detects the protocol
 
 // ListenAndServeResp starts a redis protocol gwr server.
 func ListenAndServeResp(hostPort string) error {
