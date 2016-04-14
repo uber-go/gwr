@@ -13,8 +13,8 @@ var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(`
 `))
 
 type dataSourceUpdate struct {
-	Type string         `json:"type"`
-	Info DataSourceInfo `json:"info"`
+	Type string                 `json:"type"`
+	Info map[string]interface{} `json:"info"`
 }
 
 type metaNounDataSource struct {
@@ -36,7 +36,7 @@ func (nds *metaNounDataSource) TextTemplate() *template.Template {
 
 func (nds *metaNounDataSource) Get() interface{} {
 	sources := nds.sources.sources
-	info := make(map[string]DataSourceInfo, len(sources))
+	info := make(map[string]interface{}, len(sources))
 	for name, ds := range sources {
 		info[name] = dsInfo(ds)
 	}
@@ -57,6 +57,10 @@ func (nds *metaNounDataSource) dataSourceAdded(ds DataSource) {
 	}
 }
 
-func dsInfo(ds DataSource) DataSourceInfo {
-	return ds.Info()
+func dsInfo(ds DataSource) map[string]interface{} {
+	info := ds.Info()
+	return map[string]interface{}{
+		"formats": info.Formats,
+		"attrs": info.Attrs,
+	}
 }
