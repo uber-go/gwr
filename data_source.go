@@ -5,8 +5,9 @@ import (
 	"io"
 )
 
-// The default data sources registry which data sources are added to by the
-// module-level Add* functions.
+// DefaultDataSources is default data sources registry which data sources are
+// added to by the module-level Add* functions.  It is used by all of the
+// protocol servers if no data sources are provided.
 var DefaultDataSources DataSources
 
 func init() {
