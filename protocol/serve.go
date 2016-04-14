@@ -10,18 +10,24 @@ import (
 // TODO: write a http+resp server that heuristically detects the protocol
 
 // ListenAndServeResp starts a redis protocol gwr server.
-func ListenAndServeResp(hostPort string) error {
-	return NewRedisServer(&gwr.DefaultDataSources).ListenAndServe(hostPort)
+func ListenAndServeResp(hostPort string, dss *gwr.DataSources) error {
+	if dss == nil {
+		dss = &gwr.DefaultDataSources
+	}
+	return NewRedisServer(dss).ListenAndServe(hostPort)
 }
 
 // ListenAndServeHTTP starts an http protocol gwr server.
-func ListenAndServeHTTP(hostPort string) error {
-	return http.ListenAndServe(hostPort, NewHTTPRest(&gwr.DefaultDataSources, ""))
+func ListenAndServeHTTP(hostPort string, dss *gwr.DataSources) error {
+	if dss == nil {
+		dss = &gwr.DefaultDataSources
+	}
+	return http.ListenAndServe(hostPort, NewHTTPRest(dss, ""))
 }
 
 // ProtoListenAndServe maps protocol names to listenAndServe func(hostPort
 // string) error.
-var ProtoListenAndServe = map[string]func(string) error{
+var ProtoListenAndServe = map[string]func(string, *gwr.DataSources) error{
 	"resp": ListenAndServeResp,
 	"http": ListenAndServeHTTP,
 }
@@ -37,7 +43,7 @@ var DefaultProtoHostPorts = map[string]string{
 
 // ListenAndServe starts one or more servers given a map of protocol name to
 // hostPort string.  Any errors are passed to log.Fatal.
-func ListenAndServe(protoHostPorts map[string]string) {
+func ListenAndServe(protoHostPorts map[string]string, dss *gwr.DataSources) {
 	if len(protoHostPorts) == 0 {
 		protoHostPorts = DefaultProtoHostPorts
 	} else {
@@ -47,11 +53,14 @@ func ListenAndServe(protoHostPorts map[string]string) {
 			}
 		}
 	}
+	if dss == nil {
+		dss = &gwr.DefaultDataSources
+	}
 
 	if len(protoHostPorts) == 1 {
 		for proto, hostPort := range protoHostPorts {
 			listenAndServe := ProtoListenAndServe[proto]
-			log.Fatal(listenAndServe(hostPort))
+			log.Fatal(listenAndServe(hostPort, dss))
 			return
 		}
 	}
@@ -59,7 +68,7 @@ func ListenAndServe(protoHostPorts map[string]string) {
 	for proto, hostPort := range protoHostPorts {
 		go func(proto, hostPort string) {
 			listenAndServe := ProtoListenAndServe[proto]
-			log.Fatal(listenAndServe(hostPort))
+			log.Fatal(listenAndServe(hostPort, dss))
 		}(proto, hostPort)
 	}
 	select {}

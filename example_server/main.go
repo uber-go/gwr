@@ -9,7 +9,7 @@ import (
 
 func main() {
 	go func() {
-		gwrProto.ListenAndServe(nil)
+		gwrProto.ListenAndServe(nil, nil)
 	}()
 
 	resLog := &resLogger{handler: http.DefaultServeMux}
