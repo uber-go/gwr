@@ -27,19 +27,27 @@ type MarshaledDataSource struct {
 }
 
 // GenericDataWatcher is a type alias for the function signature passed to
-// source.Watch.  The contract is that the source should call the last-passed
-// watcher until it returns false.  A new watcher passed by a later call to
-// source.Watch supercedes any previously passed watcher.
-//
-// TODO: consider renaming source.Watch to source.SetWatch to better afford it
-// singular nature.
+// source.Watch.
 type GenericDataWatcher func(interface{}) bool
 
 // GenericDataSource is a format-agnostic data source
 type GenericDataSource interface {
+	// Info returns a description of the data source
 	Info() GenericDataSourceInfo
+
+	// Get should return any data available for the data source.  A nil value
+	// should  result in a ErrNotGetable.  If a generic data source wants a
+	// marshaled null value, its Get must return a non-nil interface value.
 	Get() interface{}
+
+	// GetInit should return any inital data to send to a new watch stream.
+	// Similarly to Get a nil value will not be marshaled, but no error will be
+	// returned to the Watch request.
 	GetInit() interface{}
+
+	// Watch sets the current (singular!) watcher.  Implementations must call
+	// the passed watcher until it returns false, or until a new watcher is
+	// passed by a future call of Watch.
 	Watch(GenericDataWatcher)
 }
 
