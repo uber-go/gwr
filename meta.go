@@ -13,8 +13,8 @@ var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(`
 `))
 
 type dataSourceUpdate struct {
-	Type string
-	Info DataSourceInfo
+	Type string         `json:"type"`
+	Info DataSourceInfo `json:"info"`
 }
 
 type metaNounDataSource struct {
