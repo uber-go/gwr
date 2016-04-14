@@ -227,13 +227,17 @@ func (mds *MarshaledDataSource) Name() string {
 	return mds.source.Name()
 }
 
+// Formats returns the list of supported format names.
+func (mds *MarshaledDataSource) Formats() []string {
+	return mds.formatNames
+}
+
 // Info returns the generic data source description, plus any format specific
 // description
 func (mds *MarshaledDataSource) Info() DataSourceInfo {
 	// TODO: any need for per-format Attrs?
 	return DataSourceInfo{
-		Formats: mds.formatNames,
-		Attrs:   mds.source.Attrs(),
+		Attrs: mds.source.Attrs(),
 	}
 }
 

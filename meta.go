@@ -58,9 +58,8 @@ func (nds *metaNounDataSource) dataSourceAdded(ds DataSource) {
 }
 
 func dsInfo(ds DataSource) map[string]interface{} {
-	info := ds.Info()
 	return map[string]interface{}{
-		"formats": info.Formats,
-		"attrs": info.Attrs,
+		"formats": ds.Formats(),
+		"attrs":   ds.Info().Attrs,
 	}
 }

@@ -192,11 +192,11 @@ func (hndl *HTTPRest) determineFormat(
 ) (string, error) {
 	// TODO: some people like Accepts negotiation
 
-	info := source.Info()
+	formats := source.Formats()
 
 	formatName := r.Form.Get("format")
 	if len(formatName) != 0 {
-		for _, availFormat := range info.Formats {
+		for _, availFormat := range formats {
 			if strings.EqualFold(formatName, availFormat) {
 				return availFormat, nil
 			}
@@ -207,12 +207,12 @@ func (hndl *HTTPRest) determineFormat(
 	}
 
 	for _, defaultFormat := range hndl.defaultFormats {
-		for _, availFormat := range info.Formats {
+		for _, availFormat := range formats {
 			if strings.EqualFold(availFormat, defaultFormat) {
 				return availFormat, nil
 			}
 		}
 	}
 
-	return info.Formats[0], nil
+	return formats[0], nil
 }

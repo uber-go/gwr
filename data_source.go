@@ -39,9 +39,11 @@ type DataSource interface {
 	// Name returns the unique identifier (GWR noun path) for this source.
 	Name() string
 
-	// Info returns a struct describing the formats and other capabilities of
-	// this data source.  All implemented formats must be listed in
-	// Info().Formats.  At least "json" should be in Info().Formats.
+	// Formats returns a list of supported format name strings.  All
+	// implemented formats must be listed.  At least "json" must be supported.
+	Formats() []string
+
+	// Info returns a struct describing capabilities of this data source.
 	Info() DataSourceInfo
 
 	// Get implementations:
@@ -92,9 +94,6 @@ var (
 
 // DataSourceInfo provides a description of each data source.
 type DataSourceInfo struct {
-	// Formats must contain all supported format names.
-	Formats []string `json:"formats"`
-
 	// NOTE: any supported attributes should go here, then we'll merge them in
 	// canonically during marshalling; current ideas include:
 	// - affording get-only or watch-only
