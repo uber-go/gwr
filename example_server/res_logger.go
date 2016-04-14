@@ -55,10 +55,13 @@ func (rl *resLogger) Name() string {
 	return "/response_log"
 }
 
+func (rl *resLogger) TextTemplate() *template.Template {
+	return resLogTextTemplate
+}
+
 func (rl *resLogger) Info() gwr.GenericDataSourceInfo {
 	return gwr.GenericDataSourceInfo{
 		// TODO: afford watch-only nature
-		TextTemplate: resLogTextTemplate,
 	}
 }
 

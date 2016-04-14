@@ -28,9 +28,12 @@ func (nds *metaNounDataSource) Name() string {
 
 func (nds *metaNounDataSource) Info() GenericDataSourceInfo {
 	return GenericDataSourceInfo{
-		Attrs:        nil,
-		TextTemplate: nounsTextTemplate,
+		Attrs: nil,
 	}
+}
+
+func (nds *metaNounDataSource) TextTemplate() *template.Template {
+	return nounsTextTemplate
 }
 
 func (nds *metaNounDataSource) Get() interface{} {

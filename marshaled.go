@@ -36,6 +36,10 @@ type GenericDataSource interface {
 	// Name must return the name of the data source; see DataSource.Name.
 	Name() string
 
+	// TextTemplate returns the text/template that is used to construct a
+	// TemplatedMarshal to implement the "text" format for this data source.
+	TextTemplate() *template.Template
+
 	// Info returns a description of the data source
 	Info() GenericDataSourceInfo
 
@@ -57,8 +61,7 @@ type GenericDataSource interface {
 
 // GenericDataSourceInfo describes a format-agnostic data source
 type GenericDataSourceInfo struct {
-	Attrs        map[string]interface{}
-	TextTemplate *template.Template
+	Attrs map[string]interface{}
 }
 
 // GenericDataFormat provides both a data marshaling protocol and a framing
@@ -202,7 +205,7 @@ func NewMarshaledDataSource(
 	}
 
 	// convenience templated text protocol
-	if tt := source.Info().TextTemplate; tt != nil && formats["text"] == nil {
+	if tt := source.TextTemplate(); tt != nil && formats["text"] == nil {
 		formatNames = append(formatNames, "text")
 		watchers["text"] = newMarshaledWatcher(source, NewTemplatedMarshal(tt))
 	}

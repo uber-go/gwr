@@ -48,10 +48,13 @@ func (rl *reqLogger) Name() string {
 	return "/request_log"
 }
 
+func (rl *reqLogger) TextTemplate() *template.Template {
+	return reqLogTextTemplate
+}
+
 func (rl *reqLogger) Info() gwr.GenericDataSourceInfo {
 	return gwr.GenericDataSourceInfo{
 		// TODO: afford watch-only nature
-		TextTemplate: reqLogTextTemplate,
 	}
 }
 
