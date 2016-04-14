@@ -139,15 +139,6 @@ func (dss *DataSources) Get(name string) DataSource {
 	return nil
 }
 
-// Info returns a map of all DataSource.Info() data
-func (dss *DataSources) Info() map[string]DataSourceInfo {
-	info := make(map[string]DataSourceInfo, len(dss.sources))
-	for name, ds := range dss.sources {
-		info[name] = ds.Info()
-	}
-	return info
-}
-
 // AddMarshaledDataSource adds a generically-marshaled data source. It is a
 // convenience for AddDataSource(NewMarshaledDataSource(gds, nil))
 func (dss *DataSources) AddMarshaledDataSource(gds GenericDataSource) error {

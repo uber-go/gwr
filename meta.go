@@ -29,11 +29,16 @@ func (nds *metaNounDataSource) Info() GenericDataSourceInfo {
 }
 
 func (nds *metaNounDataSource) Get() interface{} {
-	return nds.sources.Info()
+	sources := nds.sources.sources
+	info := make(map[string]DataSourceInfo, len(sources))
+	for name, ds := range sources {
+		info[name] = ds.Info()
+	}
+	return info
 }
 
 func (nds *metaNounDataSource) GetInit() interface{} {
-	return nds.sources.Info()
+	return nds.Get()
 }
 
 func (nds *metaNounDataSource) Watch(watcher GenericDataWatcher) {
