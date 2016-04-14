@@ -160,8 +160,7 @@ func (dss *DataSources) AddMarshaledDataSource(gds GenericDataSource) error {
 // already defined for the given name.
 func (dss *DataSources) AddDataSource(ds DataSource) error {
 	info := ds.Info()
-	_, ok := dss.sources[info.Name]
-	if ok {
+	if _, ok := dss.sources[info.Name]; ok {
 		return fmt.Errorf("data source already defined")
 	}
 	dss.sources[info.Name] = ds
