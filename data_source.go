@@ -26,12 +26,50 @@ func AddMarshaledDataSource(gds GenericDataSource) error {
 	return DefaultDataSources.AddMarshaledDataSource(gds)
 }
 
-// DataSource is the interface implemented by all
-// data sources.
+// DataSource is the low-level interface implemented by all data sources.
+//
+// On formats, implementanions:
+// - must implement format == "json"
+// - should implement format == "text"
+// - may implement any other formats that make sense for them
+//
+// Further implementation requirements are listed within the interface
+// functions' documentation.
 type DataSource interface {
-	// NOTE: implementation is self encoding, but may abstract internally
+	// Info returns a struct describing the formats and other capabilities of
+	// this data source.  All implemented formats must be listed in
+	// Info().Formats.  At least "json" should be in Info().Formats.
 	Info() DataSourceInfo
+
+	// Get implementations:
+	// - may return ErrNotGetable if get is not supported by the data source
+	// - if the format is not support then ErrUnsupportedFormat must be returned
+	// - must format and write any available data to the supplied io.Writer
+	// - should return any write error
 	Get(format string, w io.Writer) error
+
+	// Watch implementations:
+	// - may return ErrNotWatchable if watch is not supported by the data
+	//   source
+	// - if the format is not support then ErrUnsupportedFormat must be returned
+	// - may format and write initial data to the supplied io.Writer; any
+	//   initial write error must be returned
+	// - may retain and write to the supplied io.Writer indefinately until it
+	//   returns a write error
+	//
+	// Note that at this level, data sources are responsible for both item
+	// marshalling and stream framing.
+	//
+	// Framing for the required "json" format is as follows:
+	// - JSON must be encoded in compact (no intermediate whitespace) form
+	// - each JSON record must be separated by a newline "\n"
+	//
+	// Framing for the required "text" format is as follows:
+	// - any initial stream data should be followed by a blank line (double new
+	//   line "\n\n")
+	// - items should be separated by newlines
+	// - if an item's text form takes up multiple lines, it should either use
+	//   indentation or a double blank line to separate itself from siblings
 	Watch(format string, w io.Writer) error
 }
 
