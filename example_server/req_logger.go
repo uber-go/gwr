@@ -52,10 +52,8 @@ func (rl *reqLogger) TextTemplate() *template.Template {
 	return reqLogTextTemplate
 }
 
-func (rl *reqLogger) Info() gwr.GenericDataSourceInfo {
-	return gwr.GenericDataSourceInfo{
-		// TODO: afford watch-only nature
-	}
+func (rl *reqLogger) Attrs() map[string]interface{} {
+	return nil
 }
 
 func (rl *reqLogger) Get() interface{} {

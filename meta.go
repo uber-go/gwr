@@ -26,10 +26,8 @@ func (nds *metaNounDataSource) Name() string {
 	return metaNounName
 }
 
-func (nds *metaNounDataSource) Info() GenericDataSourceInfo {
-	return GenericDataSourceInfo{
-		Attrs: nil,
-	}
+func (nds *metaNounDataSource) Attrs() map[string]interface{} {
+	return nil
 }
 
 func (nds *metaNounDataSource) TextTemplate() *template.Template {

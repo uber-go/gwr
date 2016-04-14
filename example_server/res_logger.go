@@ -59,10 +59,8 @@ func (rl *resLogger) TextTemplate() *template.Template {
 	return resLogTextTemplate
 }
 
-func (rl *resLogger) Info() gwr.GenericDataSourceInfo {
-	return gwr.GenericDataSourceInfo{
-		// TODO: afford watch-only nature
-	}
+func (rl *resLogger) Attrs() map[string]interface{} {
+	return nil
 }
 
 func (rl *resLogger) Get() interface{} {
