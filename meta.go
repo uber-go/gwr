@@ -2,6 +2,8 @@ package gwr
 
 import "text/template"
 
+const metaNounName = "/meta/nouns"
+
 var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(`
 {{- define "get" -}}
 {{ range $name, $info := . -}}
@@ -22,7 +24,7 @@ type metaNounDataSource struct {
 
 func (nds *metaNounDataSource) Info() GenericDataSourceInfo {
 	return GenericDataSourceInfo{
-		Name:         "/meta/nouns",
+		Name:         metaNounName,
 		Attrs:        nil,
 		TextTemplate: nounsTextTemplate,
 	}
