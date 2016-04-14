@@ -51,9 +51,12 @@ func (rl *resLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rec.Body.WriteTo(w)
 }
 
+func (rl *resLogger) Name() string {
+	return "/response_log"
+}
+
 func (rl *resLogger) Info() gwr.GenericDataSourceInfo {
 	return gwr.GenericDataSourceInfo{
-		Name: "/response_log",
 		// TODO: afford watch-only nature
 		TextTemplate: resLogTextTemplate,
 	}

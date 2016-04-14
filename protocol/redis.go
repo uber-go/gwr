@@ -120,7 +120,7 @@ func (rm *RespModel) handleWatch(rconn *resp.RedisConnection, vc *resp.ValueCons
 		return fmt.Errorf("too many arguments to watch")
 	}
 
-	name := source.Info().Name
+	name := source.Name()
 	session.watches[name] = format
 
 	return rconn.WriteSimpleString("OK")
@@ -140,7 +140,7 @@ func (rm *RespModel) handleMonitor(rconn *resp.RedisConnection, vc *resp.ValueCo
 			return err
 		}
 
-		name := source.Info().Name
+		name := source.Name()
 		session.watches[name] = format
 	}
 

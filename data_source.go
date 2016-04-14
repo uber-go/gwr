@@ -36,6 +36,9 @@ func AddMarshaledDataSource(gds GenericDataSource) error {
 // Further implementation requirements are listed within the interface
 // functions' documentation.
 type DataSource interface {
+	// Name returns the unique identifier (GWR noun path) for this source.
+	Name() string
+
 	// Info returns a struct describing the formats and other capabilities of
 	// this data source.  All implemented formats must be listed in
 	// Info().Formats.  At least "json" should be in Info().Formats.
@@ -89,9 +92,6 @@ var (
 
 // DataSourceInfo provides a description of each data source.
 type DataSourceInfo struct {
-	// Name is the unique identifier (GWR noun path) for this source.
-	Name    string                 `json:"name"`
-
 	// Formats must contain all supported format names.
 	Formats []string `json:"formats"`
 
@@ -150,11 +150,11 @@ func (dss *DataSources) AddMarshaledDataSource(gds GenericDataSource) error {
 // AddDataSource adds a DataSource, if none is
 // already defined for the given name.
 func (dss *DataSources) AddDataSource(ds DataSource) error {
-	info := ds.Info()
-	if _, ok := dss.sources[info.Name]; ok {
+	name := ds.Name()
+	if _, ok := dss.sources[name]; ok {
 		return fmt.Errorf("data source already defined")
 	}
-	dss.sources[info.Name] = ds
+	dss.sources[name] = ds
 	dss.metaNouns.dataSourceAdded(ds)
 	return nil
 }

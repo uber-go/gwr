@@ -44,9 +44,12 @@ func (rl *reqLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rl.handler.ServeHTTP(w, r)
 }
 
+func (rl *reqLogger) Name() string {
+	return "/request_log"
+}
+
 func (rl *reqLogger) Info() gwr.GenericDataSourceInfo {
 	return gwr.GenericDataSourceInfo{
-		Name: "/request_log",
 		// TODO: afford watch-only nature
 		TextTemplate: reqLogTextTemplate,
 	}

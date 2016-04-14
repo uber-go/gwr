@@ -1,6 +1,7 @@
 package gwr
 
 import (
+	"html/template"
 	"io"
 	"log"
 	"strings"
@@ -32,6 +33,9 @@ type GenericDataWatcher func(interface{}) bool
 
 // GenericDataSource is a format-agnostic data source
 type GenericDataSource interface {
+	// Name must return the name of the data source; see DataSource.Name.
+	Name() string
+
 	// Info returns a description of the data source
 	Info() GenericDataSourceInfo
 
@@ -53,7 +57,6 @@ type GenericDataSource interface {
 
 // GenericDataSourceInfo describes a format-agnostic data source
 type GenericDataSourceInfo struct {
-	Name         string
 	Attrs        map[string]interface{}
 	TextTemplate *template.Template
 }
@@ -220,13 +223,17 @@ func NewMarshaledDataSource(
 	}
 }
 
+// Name passes through the GenericDataSource.Name()
+func (mds *MarshaledDataSource) Name() string {
+	return mds.source.Name()
+}
+
 // Info returns the generic data source description, plus any format specific
 // description
 func (mds *MarshaledDataSource) Info() DataSourceInfo {
 	info := mds.source.Info()
 	// TODO: any need for per-format Attrs?
 	return DataSourceInfo{
-		Name:    info.Name,
 		Formats: mds.formatNames,
 		Attrs:   info.Attrs,
 	}

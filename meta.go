@@ -22,9 +22,12 @@ type metaNounDataSource struct {
 	watcher GenericDataWatcher
 }
 
+func (nds *metaNounDataSource) Name() string {
+	return metaNounName
+}
+
 func (nds *metaNounDataSource) Info() GenericDataSourceInfo {
 	return GenericDataSourceInfo{
-		Name:         metaNounName,
 		Attrs:        nil,
 		TextTemplate: nounsTextTemplate,
 	}
