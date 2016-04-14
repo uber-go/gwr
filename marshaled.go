@@ -232,13 +232,10 @@ func (mds *MarshaledDataSource) Formats() []string {
 	return mds.formatNames
 }
 
-// Info returns the generic data source description, plus any format specific
-// description
-func (mds *MarshaledDataSource) Info() DataSourceInfo {
-	// TODO: any need for per-format Attrs?
-	return DataSourceInfo{
-		Attrs: mds.source.Attrs(),
-	}
+// Attrs returns arbitrary description information about the data source.
+func (mds *MarshaledDataSource) Attrs() map[string]interface{} {
+	// TODO: support per-format Attrs?
+	return mds.source.Attrs()
 }
 
 // Get marshals data source's Get data to the writer

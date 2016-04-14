@@ -43,8 +43,18 @@ type DataSource interface {
 	// implemented formats must be listed.  At least "json" must be supported.
 	Formats() []string
 
-	// Info returns a struct describing capabilities of this data source.
-	Info() DataSourceInfo
+	// Attrs returnts arbitrary descriptive data about the data source.  This
+	// data is exposed be the /meta/nouns data source.
+	//
+	// TODO: standardize and document common fields; current ideas include:
+	// - affording get-only or watch-only
+	// - affording sampling config (%-age, N-per-t, etc)
+	// - whether this data source is lossy (likely the default) or whether
+	//   attempts should be taken to drop no item (opt-in edge case); this
+	//   could be used internally at least to switch between an implementation
+	//   that drops data when buffers fill, or blocks and provides back
+	//   pressure.
+	Attrs() map[string]interface{}
 
 	// Get implementations:
 	// - may return ErrNotGetable if get is not supported by the data source
@@ -91,22 +101,6 @@ var (
 	// does not support watch.
 	ErrNotWatchable = errors.New("watch not supported, data source is get-only")
 )
-
-// DataSourceInfo provides a description of each data source.
-type DataSourceInfo struct {
-	// NOTE: any supported attributes should go here, then we'll merge them in
-	// canonically during marshalling; current ideas include:
-	// - affording get-only or watch-only
-	// - affording sampling config (%-age, N-per-t, etc)
-	// - whether this data source is lossy (likely the default) or whether
-	//   attempts should be taken to drop no item (opt-in edge case); this
-	//   could be used internally at least to switch between an implementation
-	//   that drops data when buffers fill, or blocks and provides back
-	//   pressure.
-
-	// Attrs may contrain arbitrary descriptive data
-	Attrs map[string]interface{} `json:"attrs"`
-}
 
 // DataSources is a flat collection of DataSources
 // with a meta introspection data source.
