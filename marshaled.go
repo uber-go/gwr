@@ -22,7 +22,7 @@ type MarshaledDataSource struct {
 	source      GenericDataSource
 	formats     map[string]GenericDataFormat
 	formatNames []string
-	watchers    map[string]*genericWatcher
+	watchers    map[string]*marshaledWatcher
 	watching    bool
 }
 
@@ -78,13 +78,20 @@ type GenericDataFormat interface {
 	FrameItem([]byte) ([]byte, error)
 }
 
-type genericWatcher struct {
+// marshaledWatcher manages all of the low level io.Writers for a given format.
+// Instances are created once for each MarshaledDataSource.
+//
+// MarshaledDataSource then manages calling marshaledWatcher.emit for each data
+// item as long as there is one valid io.Writer for a given format.  Once the
+// last marshaledWatcher goes idle, the underlying GenericDataSource watch is
+// ended.
+type marshaledWatcher struct {
 	source  GenericDataSource
 	format  GenericDataFormat
 	writers []io.Writer
 }
 
-func (gw *genericWatcher) init(w io.Writer) error {
+func (gw *marshaledWatcher) init(w io.Writer) error {
 	if data := gw.source.GetInit(); data != nil {
 		format := gw.format
 		buf, err := format.MarshalInit(data)
@@ -106,7 +113,7 @@ func (gw *genericWatcher) init(w io.Writer) error {
 	return nil
 }
 
-func (gw *genericWatcher) emit(data interface{}) bool {
+func (gw *marshaledWatcher) emit(data interface{}) bool {
 	if len(gw.writers) == 0 {
 		return false
 	}
@@ -142,12 +149,12 @@ func NewMarshaledDataSource(
 		// a big deal
 		n++
 	}
-	watchers := make(map[string]*genericWatcher, n)
+	watchers := make(map[string]*marshaledWatcher, n)
 
 	// standard json protocol
 	if formats["json"] == nil {
 		formatNames = append(formatNames, "json")
-		watchers["json"] = &genericWatcher{
+		watchers["json"] = &marshaledWatcher{
 			source:  source,
 			format:  LDJSONMarshal,
 			writers: nil,
@@ -157,7 +164,7 @@ func NewMarshaledDataSource(
 	// convenience templated text protocol
 	if tt := source.Info().TextTemplate; tt != nil && formats["text"] == nil {
 		formatNames = append(formatNames, "text")
-		watchers["text"] = &genericWatcher{
+		watchers["text"] = &marshaledWatcher{
 			source:  source,
 			format:  NewTemplatedMarshal(tt),
 			writers: nil,
@@ -169,7 +176,7 @@ func NewMarshaledDataSource(
 
 	for name, format := range formats {
 		formatNames = append(formatNames, name)
-		watchers[name] = &genericWatcher{
+		watchers[name] = &marshaledWatcher{
 			source:  source,
 			format:  format,
 			writers: nil,
