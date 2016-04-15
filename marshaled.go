@@ -237,6 +237,7 @@ func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
 		return err
 	}
 
+	// TODO: we could optimize the only-one-format-being-watched case
 	if !mds.watching {
 		mds.source.Watch(mds.emit)
 		mds.watching = true
