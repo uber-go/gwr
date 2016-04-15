@@ -40,7 +40,7 @@ type GenericDataSource interface {
 	// marshaled null value, its Get must return a non-nil interface value.
 	Get() interface{}
 
-	// GetInit should return any inital data to send to a new watch stream.
+	// GetInit should return any initial data to send to a new watch stream.
 	// Similarly to Get a nil value will not be marshaled, but no error will be
 	// returned to the Watch request.
 	GetInit() interface{}
@@ -98,12 +98,12 @@ func (gw *marshaledWatcher) init(w io.Writer) error {
 		format := gw.format
 		buf, err := format.MarshalInit(data)
 		if err != nil {
-			log.Printf("inital marshaling error %v", err)
+			log.Printf("initial marshaling error %v", err)
 			return err
 		}
 		buf, err = format.FrameItem(buf)
 		if err != nil {
-			log.Printf("inital framing error %v", err)
+			log.Printf("initial framing error %v", err)
 			return err
 		}
 		_, err = w.Write(buf)
