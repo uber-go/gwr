@@ -75,11 +75,6 @@ func (tm *TemplatedMarshal) MarshalItem(data interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// FrameInit appends a newline
-func (tm *TemplatedMarshal) FrameInit(json []byte) ([]byte, error) {
-	return tm.FrameItem(json)
-}
-
 // FrameItem appends a newline
 func (tm *TemplatedMarshal) FrameItem(json []byte) ([]byte, error) {
 	n := len(json)

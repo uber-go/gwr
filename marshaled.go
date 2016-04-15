@@ -71,9 +71,6 @@ type GenericDataFormat interface {
 	// Marshal serializes data passed to a GenericDataWatcher.
 	MarshalItem(interface{}) ([]byte, error)
 
-	// FrameInit wraps a MarshalInit-ed byte buffer for a watch stream.
-	FrameInit([]byte) ([]byte, error)
-
 	// FrameItem wraps a MarshalItem-ed byte buffer for a watch stream.
 	FrameItem([]byte) ([]byte, error)
 }
@@ -99,7 +96,7 @@ func (gw *marshaledWatcher) init(w io.Writer) error {
 			log.Printf("inital marshaling error %v", err)
 			return err
 		}
-		buf, err = format.FrameInit(buf)
+		buf, err = format.FrameItem(buf)
 		if err != nil {
 			log.Printf("inital framing error %v", err)
 			return err

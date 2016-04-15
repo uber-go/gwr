@@ -22,12 +22,7 @@ func (x ldJSONMarshal) MarshalItem(data interface{}) ([]byte, error) {
 	return json.Marshal(data)
 }
 
-// FrameInit appends the newline record delimiter
-func (x ldJSONMarshal) FrameInit(json []byte) ([]byte, error) {
-	return x.FrameItem(json)
-}
-
-// FrameInit appends the newline record delimiter
+// FrameItem appends the newline record delimiter
 func (x ldJSONMarshal) FrameItem(json []byte) ([]byte, error) {
 	n := len(json)
 	frame := make([]byte, n+1)
