@@ -178,6 +178,9 @@ func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
 }
 
 func (mds *MarshaledDataSource) emit(data interface{}) bool {
+	if !mds.watching {
+		return false
+	}
 	any := false
 	for _, watcher := range mds.watchers {
 		if watcher.emit(data) {
