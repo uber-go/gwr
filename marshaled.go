@@ -128,31 +128,41 @@ func (gw *marshaledWatcher) emit(data interface{}) bool {
 	// TODO: avoid blocking fan out, parallelize; error back-propagation then
 	// needs to happen over another channel
 
-	failed := make([]int, 0, len(gw.writers))
+	var failed []int // TODO: could carry this rather than allocate on failure
 	for i, w := range gw.writers {
 		if _, err := w.Write(buf); err != nil {
+			if failed == nil {
+				failed = make([]int, 0, len(gw.writers))
+			}
 			failed = append(failed, i)
 		}
 	}
+	if len(failed) == 0 {
+		return true
+	}
 
-	if len(failed) != 0 {
-		var okay []io.Writer
-		for i, w := range gw.writers {
-			if i != failed[0] {
-				okay = append(okay, w)
-			}
-			if i >= failed[0] {
-				failed = failed[1:]
-				if len(failed) == 0 {
-					if i < len(gw.writers)-1 {
-						okay = append(okay, gw.writers[i+1:]...)
-					}
-					break
+	var (
+		okay []io.Writer
+		remain = len(gw.writers) - len(failed)
+	)
+	if remain > 0 {
+		okay = make([]io.Writer, 0, remain)
+	}
+	for i, w := range gw.writers {
+		if i != failed[0] {
+			okay = append(okay, w)
+		}
+		if i >= failed[0] {
+			failed = failed[1:]
+			if len(failed) == 0 {
+				if j := i + 1; j < len(gw.writers) {
+					okay = append(okay, gw.writers[j:]...)
 				}
+				break
 			}
 		}
-		gw.writers = okay
 	}
+	gw.writers = okay
 
 	return len(gw.writers) != 0
 }
