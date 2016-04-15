@@ -1,7 +1,7 @@
 package gwr
 
 import (
-	"html/template"
+	"errors"
 	"io"
 	"log"
 	"strings"
@@ -85,61 +85,43 @@ type GenericDataFormat interface {
 // last marshaledWatcher goes idle, the underlying GenericDataSource watch is
 // ended.
 type marshaledWatcher struct {
-	source  GenericDataSource
-	format  GenericDataFormat
-	writers []io.Writer
+	source   GenericDataSource
+	format   GenericDataFormat
+	dfw      defaultFrameWatcher
+	watchers []ItemWatcher
 }
 
 func newMarshaledWatcher(source GenericDataSource, format GenericDataFormat) *marshaledWatcher {
 	gw := &marshaledWatcher{source: source, format: format}
+	gw.dfw.format = format
 	return gw
 }
 
 func (gw *marshaledWatcher) init(w io.Writer) error {
-	if data := gw.source.GetInit(); data != nil {
-		format := gw.format
-		buf, err := format.MarshalInit(data)
-		if err != nil {
-			log.Printf("initial marshaling error %v", err)
-			return err
-		}
-		buf, err = format.FrameItem(buf)
-		if err != nil {
-			log.Printf("initial framing error %v", err)
-			return err
-		}
-		_, err = w.Write(buf)
-		if err != nil {
-			return err
-		}
+	if err := gw.dfw.init(gw.source.GetInit(), w); err != nil {
+		return err
 	}
-	gw.writers = append(gw.writers, w)
+	if len(gw.dfw.writers) == 1 {
+		gw.watchers = append(gw.watchers, &gw.dfw)
+	}
 	return nil
 }
 
 func (gw *marshaledWatcher) emit(data interface{}) bool {
-	if len(gw.writers) == 0 {
+	if len(gw.watchers) == 0 {
 		return false
 	}
-	buf, err := gw.format.MarshalItem(data)
+	item, err := gw.format.MarshalItem(data)
 	if err != nil {
 		log.Printf("item marshaling error %v", err)
 		return false
 	}
-	buf, err = gw.format.FrameItem(buf)
-	if err != nil {
-		log.Printf("item framing error %v", err)
-		return false
-	}
-
-	// TODO: avoid blocking fan out, parallelize; error back-propagation then
-	// needs to happen over another channel
 
 	var failed []int // TODO: could carry this rather than allocate on failure
-	for i, w := range gw.writers {
-		if _, err := w.Write(buf); err != nil {
+	for i, iw := range gw.watchers {
+		if err := iw.HandleItem(item); err != nil {
 			if failed == nil {
-				failed = make([]int, 0, len(gw.writers))
+				failed = make([]int, 0, len(gw.watchers))
 			}
 			failed = append(failed, i)
 		}
@@ -149,29 +131,29 @@ func (gw *marshaledWatcher) emit(data interface{}) bool {
 	}
 
 	var (
-		okay []io.Writer
-		remain = len(gw.writers) - len(failed)
+		okay   []ItemWatcher
+		remain = len(gw.watchers) - len(failed)
 	)
 	if remain > 0 {
-		okay = make([]io.Writer, 0, remain)
+		okay = make([]ItemWatcher, 0, remain)
 	}
-	for i, w := range gw.writers {
+	for i, iw := range gw.watchers {
 		if i != failed[0] {
-			okay = append(okay, w)
+			okay = append(okay, iw)
 		}
 		if i >= failed[0] {
 			failed = failed[1:]
 			if len(failed) == 0 {
-				if j := i + 1; j < len(gw.writers) {
-					okay = append(okay, gw.writers[j:]...)
+				if j := i + 1; j < len(gw.watchers) {
+					okay = append(okay, gw.watchers[j:]...)
 				}
 				break
 			}
 		}
 	}
-	gw.writers = okay
+	gw.watchers = okay
 
-	return len(gw.writers) != 0
+	return len(gw.watchers) != 0
 }
 
 // NewMarshaledDataSource creates a MarshaledDataSource for a given
@@ -293,4 +275,105 @@ func (mds *MarshaledDataSource) emit(data interface{}) bool {
 		mds.watching = false
 	}
 	return any
+}
+
+var errDefaultFrameWatcherDone = errors.New("all defaultFrameWatcher writers done")
+
+type defaultFrameWatcher struct {
+	format  GenericDataFormat
+	writers []io.Writer
+}
+
+func (dfw *defaultFrameWatcher) init(data interface{}, w io.Writer) error {
+	if data != nil {
+		buf, err := dfw.format.MarshalInit(data)
+		if err != nil {
+			log.Printf("initial marshaling error %v", err)
+			return err
+		}
+		buf, err = dfw.format.FrameItem(buf)
+		if err != nil {
+			log.Printf("initial framing error %v", err)
+			return err
+		}
+		if _, err := w.Write(buf); err != nil {
+			return err
+		}
+	}
+	dfw.writers = append(dfw.writers, w)
+	return nil
+}
+
+func (dfw *defaultFrameWatcher) HandleItem(item []byte) error {
+	if len(dfw.writers) == 0 {
+		return errDefaultFrameWatcherDone
+	}
+	if buf, err := dfw.format.FrameItem(item); err != nil {
+		log.Printf("item framing error %v", err)
+		return err
+	} else if err := dfw.writeToAll(buf); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (dfw *defaultFrameWatcher) HandleItems(items [][]byte) error {
+	if len(dfw.writers) == 0 {
+		return errDefaultFrameWatcherDone
+	}
+	for _, item := range items {
+		if buf, err := dfw.format.FrameItem(item); err != nil {
+			log.Printf("item framing error %v", err)
+			return err
+		} else if err := dfw.writeToAll(buf); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (dfw *defaultFrameWatcher) writeToAll(buf []byte) error {
+	// TODO: avoid blocking fan out, parallelize; error back-propagation then
+	// needs to happen over another channel
+
+	var failed []int // TODO: could carry this rather than allocate on failure
+	for i, w := range dfw.writers {
+		if _, err := w.Write(buf); err != nil {
+			if failed == nil {
+				failed = make([]int, 0, len(dfw.writers))
+			}
+			failed = append(failed, i)
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+
+	var (
+		okay   []io.Writer
+		remain = len(dfw.writers) - len(failed)
+	)
+	if remain > 0 {
+		okay = make([]io.Writer, 0, remain)
+	}
+	for i, w := range dfw.writers {
+		if i != failed[0] {
+			okay = append(okay, w)
+		}
+		if i >= failed[0] {
+			failed = failed[1:]
+			if len(failed) == 0 {
+				if j := i + 1; j < len(dfw.writers) {
+					okay = append(okay, dfw.writers[j:]...)
+				}
+				break
+			}
+		}
+	}
+	dfw.writers = okay
+
+	if len(dfw.writers) == 0 {
+		return errDefaultFrameWatcherDone
+	}
+	return nil
 }
