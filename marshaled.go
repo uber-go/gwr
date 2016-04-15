@@ -107,6 +107,19 @@ func (gw *marshaledWatcher) init(w io.Writer) error {
 	return nil
 }
 
+func (gw *marshaledWatcher) initItems(iw ItemWatcher) error {
+	if data := gw.source.GetInit(); data != nil {
+		if buf, err := gw.format.MarshalInit(data); err != nil {
+			log.Printf("initial marshaling error %v", err)
+			return err
+		} else if err := iw.HandleItem(buf); err != nil {
+			return err
+		}
+	}
+	gw.watchers = append(gw.watchers, iw)
+	return nil
+}
+
 func (gw *marshaledWatcher) emit(data interface{}) bool {
 	if len(gw.watchers) == 0 {
 		return false
@@ -249,6 +262,28 @@ func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
 	}
 
 	if err := watcher.init(w); err != nil {
+		return err
+	}
+
+	// TODO: we could optimize the only-one-format-being-watched case
+	if !mds.watching {
+		mds.source.Watch(mds.emit)
+		mds.watching = true
+	}
+
+	return nil
+}
+
+// WatchItems marshals any data source GetInit data as a single item to the
+// ItemWatcher's HandleItem method.  The watcher is then retained and future
+// items are marshaled to its HandleItem method.
+func (mds *MarshaledDataSource) WatchItems(formatName string, iw ItemWatcher) error {
+	watcher, ok := mds.watchers[strings.ToLower(formatName)]
+	if !ok {
+		return ErrUnsupportedFormat
+	}
+
+	if err := watcher.initItems(iw); err != nil {
 		return err
 	}
 
