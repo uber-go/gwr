@@ -232,7 +232,7 @@ func (mds *MarshaledDataSource) Info() DataSourceInfo {
 	}
 }
 
-// Get marshals the agnostic data source's Get data to the writer
+// Get marshals data source's Get data to the writer
 func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
 	format, ok := mds.formats[strings.ToLower(formatName)]
 	if !ok {
@@ -251,7 +251,7 @@ func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
 	return err
 }
 
-// Watch marshals any agnostic data source GetInit data to the writer, and then
+// Watch marshals any data source GetInit data to the writer, and then
 // retains a reference to the writer so that any future agnostic data source
 // Watch(emit)'ed data gets marshaled to it as well
 func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
