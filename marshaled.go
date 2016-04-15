@@ -127,6 +127,8 @@ func (gw *marshaledWatcher) emit(data interface{}) bool {
 		log.Printf("item framing error %v", err)
 		return false
 	}
+	// TODO: avoid blocking fan out, parallelize; error back-propagation then
+	// needs to happen over another channel
 	gw.writers = writeToEach(buf, gw.writers)
 	return len(gw.writers) != 0
 }
