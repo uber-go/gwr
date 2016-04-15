@@ -88,6 +88,11 @@ type marshaledWatcher struct {
 	writers []io.Writer
 }
 
+func newMarshaledWatcher(source GenericDataSource, format GenericDataFormat) *marshaledWatcher {
+	gw := &marshaledWatcher{source: source, format: format}
+	return gw
+}
+
 func (gw *marshaledWatcher) init(w io.Writer) error {
 	if data := gw.source.GetInit(); data != nil {
 		format := gw.format
@@ -190,21 +195,13 @@ func NewMarshaledDataSource(
 	// standard json protocol
 	if formats["json"] == nil {
 		formatNames = append(formatNames, "json")
-		watchers["json"] = &marshaledWatcher{
-			source:  source,
-			format:  LDJSONMarshal,
-			writers: nil,
-		}
+		watchers["json"] = newMarshaledWatcher(source, LDJSONMarshal)
 	}
 
 	// convenience templated text protocol
 	if tt := source.Info().TextTemplate; tt != nil && formats["text"] == nil {
 		formatNames = append(formatNames, "text")
-		watchers["text"] = &marshaledWatcher{
-			source:  source,
-			format:  NewTemplatedMarshal(tt),
-			writers: nil,
-		}
+		watchers["text"] = newMarshaledWatcher(source, NewTemplatedMarshal(tt))
 	}
 
 	// TODO: source should be able to declare some formats in addition to any
@@ -212,11 +209,7 @@ func NewMarshaledDataSource(
 
 	for name, format := range formats {
 		formatNames = append(formatNames, name)
-		watchers[name] = &marshaledWatcher{
-			source:  source,
-			format:  format,
-			writers: nil,
-		}
+		watchers[name] = newMarshaledWatcher(source, format)
 	}
 
 	return &MarshaledDataSource{
