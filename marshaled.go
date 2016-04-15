@@ -16,8 +16,8 @@ import (
 // function.  This would be possible perhaps using something like
 // io.MultiWriter.
 
-// MarshaledDataSource wraps a format-agnostic data source and provides one
-// or more formats for it
+// MarshaledDataSource wraps a format-agnostic data source and provides one or
+// more formats for it
 type MarshaledDataSource struct {
 	source      GenericDataSource
 	formats     map[string]GenericDataFormat
@@ -130,16 +130,43 @@ func NewMarshaledDataSource(
 	source GenericDataSource,
 	formats map[string]GenericDataFormat,
 ) *MarshaledDataSource {
-	if len(formats) == 0 {
-		formats = make(map[string]GenericDataFormat)
-		formats["json"] = LDJSONMarshal
-		if info := source.Info(); info.TextTemplate != nil {
-			formats["text"] = NewTemplatedMarshal(info.TextTemplate)
+	var formatNames []string
+
+	// we need room for json and text defaults plus any specified
+	n := len(formats)
+	if formats["json"] == nil {
+		n++
+	}
+	if formats["text"] == nil {
+		// may over estimate by one if source has no TextTemplate; probably not
+		// a big deal
+		n++
+	}
+	watchers := make(map[string]*genericWatcher, n)
+
+	// standard json protocol
+	if formats["json"] == nil {
+		formatNames = append(formatNames, "json")
+		watchers["json"] = &genericWatcher{
+			source:  source,
+			format:  LDJSONMarshal,
+			writers: nil,
 		}
 	}
 
-	var formatNames []string
-	watchers := make(map[string]*genericWatcher, len(formats))
+	// convenience templated text protocol
+	if tt := source.Info().TextTemplate; tt != nil && formats["text"] == nil {
+		formatNames = append(formatNames, "text")
+		watchers["text"] = &genericWatcher{
+			source:  source,
+			format:  NewTemplatedMarshal(tt),
+			writers: nil,
+		}
+	}
+
+	// TODO: source should be able to declare some formats in addition to any
+	// integratgor
+
 	for name, format := range formats {
 		formatNames = append(formatNames, name)
 		watchers[name] = &genericWatcher{
@@ -148,6 +175,7 @@ func NewMarshaledDataSource(
 			writers: nil,
 		}
 	}
+
 	return &MarshaledDataSource{
 		source:      source,
 		formats:     formats,
