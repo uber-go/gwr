@@ -26,7 +26,8 @@ var resLogTextTemplate = template.Must(template.New("res_logger_text").Parse(`
 `))
 
 func (rl *resLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if rl.watcher == nil {
+	watcher := rl.watcher
+	if watcher == nil {
 		rl.handler.ServeHTTP(w, r)
 		return
 	}
@@ -39,7 +40,7 @@ func (rl *resLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Bytes:       rec.Body.Len(),
 		ContentType: rec.HeaderMap.Get("Content-Type"),
 	}
-	if !rl.watcher(info) {
+	if !watcher(info) {
 		rl.watcher = nil
 	}
 

@@ -31,13 +31,13 @@ type reqInfo struct {
 }
 
 func (rl *reqLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if rl.watcher != nil {
+	if watcher := rl.watcher; watcher != nil {
 		info := reqInfo{
 			Method: r.Method,
 			Path:   r.URL.Path,
 			Query:  r.URL.RawQuery,
 		}
-		if !rl.watcher(info) {
+		if !watcher(info) {
 			rl.watcher = nil
 		}
 	}
