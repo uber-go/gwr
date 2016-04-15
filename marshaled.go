@@ -147,6 +147,9 @@ func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
 		return ErrUnsupportedFormat
 	}
 	data := mds.source.Get()
+	if data == nil {
+		return ErrNotGetable
+	}
 	buf, err := format.Marshal(data)
 	if err != nil {
 		log.Printf("marshaling error %v", err)
