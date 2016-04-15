@@ -36,9 +36,9 @@ func NewTemplatedMarshal(tmpl *template.Template) *TemplatedMarshal {
 
 // TODO: need accessors for the names?
 
-// Marshal returns the rendered bytes from the get template.  If no get
+// MarshalGet returns the rendered bytes from the get template.  If no get
 // template is defined, an error is returned.
-func (tm *TemplatedMarshal) Marshal(data interface{}) ([]byte, error) {
+func (tm *TemplatedMarshal) MarshalGet(data interface{}) ([]byte, error) {
 	if len(tm.getName) == 0 {
 		return nil, fmt.Errorf("only streaming is supported by the data format; no get template defined")
 	}
@@ -49,9 +49,9 @@ func (tm *TemplatedMarshal) Marshal(data interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// FrameInit returns the rendered bytes from the init template.  If no init
+// MarshalInit returns the rendered bytes from the init template.  If no init
 // template is defined, an error is returned.
-func (tm *TemplatedMarshal) FrameInit(data interface{}) ([]byte, error) {
+func (tm *TemplatedMarshal) MarshalInit(data interface{}) ([]byte, error) {
 	if len(tm.initName) == 0 {
 		return nil, fmt.Errorf("streaming is unsupported by the data format; no init template defined")
 	}
@@ -62,9 +62,9 @@ func (tm *TemplatedMarshal) FrameInit(data interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Frame returns the rendered bytes from the item template.  If no item
+// MarshalItem returns the rendered bytes from the item template.  If no item
 // template is defined, an error is returned.
-func (tm *TemplatedMarshal) Frame(data interface{}) ([]byte, error) {
+func (tm *TemplatedMarshal) MarshalItem(data interface{}) ([]byte, error) {
 	if len(tm.itemName) == 0 {
 		return nil, fmt.Errorf("streaming is unsupported by the data format; no item template defined")
 	}
@@ -73,4 +73,18 @@ func (tm *TemplatedMarshal) Frame(data interface{}) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// FrameInit appends a newline
+func (tm *TemplatedMarshal) FrameInit(json []byte) ([]byte, error) {
+	return tm.FrameItem(json)
+}
+
+// FrameItem appends a newline
+func (tm *TemplatedMarshal) FrameItem(json []byte) ([]byte, error) {
+	n := len(json)
+	frame := make([]byte, n+1)
+	copy(frame, json)
+	frame[n] = '\n'
+	return frame, nil
 }

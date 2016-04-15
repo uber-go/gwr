@@ -1,33 +1,37 @@
 package gwr
 
-import (
-	"bytes"
-	"encoding/json"
-)
+import "encoding/json"
 
 // LDJSONMarshal is the usual Line-Delimited JSON
 var LDJSONMarshal = ldJSONMarshal(0)
 
 type ldJSONMarshal int
 
-// Marshal marhshals data through the standard json module
-func (x ldJSONMarshal) Marshal(data interface{}) ([]byte, error) {
+// MarshalGet marhshals data through the standard json module.
+func (x ldJSONMarshal) MarshalGet(data interface{}) ([]byte, error) {
 	return json.Marshal(data)
 }
 
-// Frame appends the delimiter
-func (x ldJSONMarshal) Frame(data interface{}) ([]byte, error) {
-	json, err := x.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
-	buf := bytes.NewBuffer(make([]byte, 0, len(json)+1))
-	buf.Write(json)
-	buf.WriteByte('\n')
-	return buf.Bytes(), nil
+// MarshalInit marhshals data through the standard json module.
+func (x ldJSONMarshal) MarshalInit(data interface{}) ([]byte, error) {
+	return json.Marshal(data)
 }
 
-// FrameInit appends the delimiter
-func (x ldJSONMarshal) FrameInit(data interface{}) ([]byte, error) {
-	return x.Frame(data)
+// MarshalItem marhshals data through the standard json module.
+func (x ldJSONMarshal) MarshalItem(data interface{}) ([]byte, error) {
+	return json.Marshal(data)
+}
+
+// FrameInit appends the newline record delimiter
+func (x ldJSONMarshal) FrameInit(json []byte) ([]byte, error) {
+	return x.FrameItem(json)
+}
+
+// FrameInit appends the newline record delimiter
+func (x ldJSONMarshal) FrameItem(json []byte) ([]byte, error) {
+	n := len(json)
+	frame := make([]byte, n+1)
+	copy(frame, json)
+	frame[n] = '\n'
+	return frame, nil
 }

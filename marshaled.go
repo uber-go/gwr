@@ -20,7 +20,7 @@ import (
 // or more formats for it
 type MarshaledDataSource struct {
 	source      GenericDataSource
-	formats     map[string]GenericDataMarshal
+	formats     map[string]GenericDataFormat
 	formatNames []string
 	watchers    map[string]*genericWatcher
 	watching    bool
@@ -58,25 +58,41 @@ type GenericDataSourceInfo struct {
 	TextTemplate *template.Template
 }
 
-// GenericDataMarshal provides both a data marshaling protocol and a framing
-// protocol for the watch stream
-type GenericDataMarshal interface {
-	// TODO: need? Info() map[string]interface{}
-	Marshal(interface{}) ([]byte, error)
-	FrameInit(interface{}) ([]byte, error)
-	Frame(interface{}) ([]byte, error)
+// GenericDataFormat provides both a data marshaling protocol and a framing
+// protocol for the watch stream.  Any marshaling or framing error should cause
+// a break in any watch streams subscribed to this format.
+type GenericDataFormat interface {
+	// Marshal serializes the passed data from GenericDataSource.Get.
+	MarshalGet(interface{}) ([]byte, error)
+
+	// Marshal serializes the passed data from GenericDataSource.GetInit.
+	MarshalInit(interface{}) ([]byte, error)
+
+	// Marshal serializes data passed to a GenericDataWatcher.
+	MarshalItem(interface{}) ([]byte, error)
+
+	// FrameInit wraps a MarshalInit-ed byte buffer for a watch stream.
+	FrameInit([]byte) ([]byte, error)
+
+	// FrameItem wraps a MarshalItem-ed byte buffer for a watch stream.
+	FrameItem([]byte) ([]byte, error)
 }
 
 type genericWatcher struct {
 	source  GenericDataSource
-	format  GenericDataMarshal
+	format  GenericDataFormat
 	writers []io.Writer
 }
 
 func (gw *genericWatcher) init(w io.Writer) error {
 	if data := gw.source.GetInit(); data != nil {
 		format := gw.format
-		buf, err := format.FrameInit(data)
+		buf, err := format.MarshalInit(data)
+		if err != nil {
+			log.Printf("inital marshaling error %v", err)
+			return err
+		}
+		buf, err = format.FrameInit(buf)
 		if err != nil {
 			log.Printf("inital framing error %v", err)
 			return err
@@ -94,10 +110,14 @@ func (gw *genericWatcher) emit(data interface{}) bool {
 	if len(gw.writers) == 0 {
 		return false
 	}
-
-	buf, err := gw.format.Frame(data)
+	buf, err := gw.format.MarshalItem(data)
 	if err != nil {
-		log.Printf("framing error %v", err)
+		log.Printf("item marshaling error %v", err)
+		return false
+	}
+	buf, err = gw.format.FrameItem(buf)
+	if err != nil {
+		log.Printf("item framing error %v", err)
 		return false
 	}
 	gw.writers = writeToEach(buf, gw.writers)
@@ -108,10 +128,10 @@ func (gw *genericWatcher) emit(data interface{}) bool {
 // format-agnostic data source and a map of marshalers
 func NewMarshaledDataSource(
 	source GenericDataSource,
-	formats map[string]GenericDataMarshal,
+	formats map[string]GenericDataFormat,
 ) *MarshaledDataSource {
 	if len(formats) == 0 {
-		formats = make(map[string]GenericDataMarshal)
+		formats = make(map[string]GenericDataFormat)
 		formats["json"] = LDJSONMarshal
 		if info := source.Info(); info.TextTemplate != nil {
 			formats["text"] = NewTemplatedMarshal(info.TextTemplate)
@@ -158,9 +178,9 @@ func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
 	if data == nil {
 		return ErrNotGetable
 	}
-	buf, err := format.Marshal(data)
+	buf, err := format.MarshalGet(data)
 	if err != nil {
-		log.Printf("marshaling error %v", err)
+		log.Printf("get marshaling error %v", err)
 		return err
 	}
 	_, err = w.Write(buf)
