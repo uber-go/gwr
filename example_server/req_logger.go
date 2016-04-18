@@ -21,7 +21,7 @@ func logged(handler http.Handler) *reqLogger {
 var reqLogTextTemplate = template.Must(template.New("req_logger_text").Parse(`
 {{- define "item" -}}
 {{ .Method }} {{ .Path }} {{ .Query }}
-{{ end -}}
+{{- end -}}
 `))
 
 type reqInfo struct {
