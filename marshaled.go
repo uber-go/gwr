@@ -18,7 +18,12 @@ import (
 // io.MultiWriter.
 
 // MarshaledDataSource wraps a format-agnostic data source and provides one or
-// more formats for it
+// more formats for it.
+//
+// MarshaledDataSource implements:
+// - DataSource to satisfy DataSources and low level protocols
+// - ItemDataSource so that higher level protocols may add their own framing
+// - GenericDataWatcher inwardly to the wrapped GenericDataSource
 type MarshaledDataSource struct {
 	source      GenericDataSource
 	formats     map[string]GenericDataFormat
@@ -27,9 +32,15 @@ type MarshaledDataSource struct {
 	watching    bool
 }
 
-// GenericDataWatcher is a type alias for the function signature passed to
-// source.Watch.
-type GenericDataWatcher func(interface{}) bool
+// GenericDataWatcher is the interface for the watcher passed to
+// GenericDataSource.Watch. Both single-item and batch methods are provided.
+type GenericDataWatcher interface {
+	// HandleItem is called with a single item of generic unmarshaled data.
+	HandleItem(item interface{}) bool
+
+	// HandleItem is called with a batch of generic unmarshaled data.
+	HandleItems(items []interface{}) bool
+}
 
 // GenericDataSource is a format-agnostic data source
 type GenericDataSource interface {
@@ -120,11 +131,11 @@ func (gw *marshaledWatcher) initItems(iw ItemWatcher) error {
 	return nil
 }
 
-func (gw *marshaledWatcher) emit(data interface{}) bool {
+func (gw *marshaledWatcher) emit(item interface{}) bool {
 	if len(gw.watchers) == 0 {
 		return false
 	}
-	item, err := gw.format.MarshalItem(data)
+	data, err := gw.format.MarshalItem(item)
 	if err != nil {
 		log.Printf("item marshaling error %v", err)
 		return false
@@ -132,7 +143,61 @@ func (gw *marshaledWatcher) emit(data interface{}) bool {
 
 	var failed []int // TODO: could carry this rather than allocate on failure
 	for i, iw := range gw.watchers {
-		if err := iw.HandleItem(item); err != nil {
+		if err := iw.HandleItem(data); err != nil {
+			if failed == nil {
+				failed = make([]int, 0, len(gw.watchers))
+			}
+			failed = append(failed, i)
+		}
+	}
+	if len(failed) == 0 {
+		return true
+	}
+
+	var (
+		okay   []ItemWatcher
+		remain = len(gw.watchers) - len(failed)
+	)
+	if remain > 0 {
+		okay = make([]ItemWatcher, 0, remain)
+	}
+	for i, iw := range gw.watchers {
+		if i != failed[0] {
+			okay = append(okay, iw)
+		}
+		if i >= failed[0] {
+			failed = failed[1:]
+			if len(failed) == 0 {
+				if j := i + 1; j < len(gw.watchers) {
+					okay = append(okay, gw.watchers[j:]...)
+				}
+				break
+			}
+		}
+	}
+	gw.watchers = okay
+
+	return len(gw.watchers) != 0
+}
+
+func (gw *marshaledWatcher) emitBatch(items []interface{}) bool {
+	if len(gw.watchers) == 0 {
+		return false
+	}
+
+	data := make([][]byte, len(items))
+	for i, item := range items {
+		buf, err := gw.format.MarshalItem(item)
+		if err != nil {
+			log.Printf("item marshaling error %v", err)
+			return false
+		}
+		data[i] = buf
+	}
+
+	var failed []int // TODO: could carry this rather than allocate on failure
+	for i, iw := range gw.watchers {
+		if err := iw.HandleItems(data); err != nil {
 			if failed == nil {
 				failed = make([]int, 0, len(gw.watchers))
 			}
@@ -267,7 +332,7 @@ func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
 
 	// TODO: we could optimize the only-one-format-being-watched case
 	if !mds.watching {
-		mds.source.Watch(mds.emit)
+		mds.source.Watch(mds)
 		mds.watching = true
 	}
 
@@ -289,20 +354,40 @@ func (mds *MarshaledDataSource) WatchItems(formatName string, iw ItemWatcher) er
 
 	// TODO: we could optimize the only-one-format-being-watched case
 	if !mds.watching {
-		mds.source.Watch(mds.emit)
+		mds.source.Watch(mds)
 		mds.watching = true
 	}
 
 	return nil
 }
 
-func (mds *MarshaledDataSource) emit(data interface{}) bool {
+// HandleItem implements GenericDataWatcher.HandleItem by passing the item to
+// all current marshaledWatchers.
+func (mds *MarshaledDataSource) HandleItem(item interface{}) bool {
 	if !mds.watching {
 		return false
 	}
 	any := false
 	for _, watcher := range mds.watchers {
-		if watcher.emit(data) {
+		if watcher.emit(item) {
+			any = true
+		}
+	}
+	if !any {
+		mds.watching = false
+	}
+	return any
+}
+
+// HandleItems implements GenericDataWatcher.HandleItems by passing the batch
+// to all current marshaledWatchers.
+func (mds *MarshaledDataSource) HandleItems(items []interface{}) bool {
+	if !mds.watching {
+		return false
+	}
+	any := false
+	for _, watcher := range mds.watchers {
+		if watcher.emitBatch(items) {
 			any = true
 		}
 	}

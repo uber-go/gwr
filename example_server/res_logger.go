@@ -40,7 +40,7 @@ func (rl *resLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Bytes:       rec.Body.Len(),
 		ContentType: rec.HeaderMap.Get("Content-Type"),
 	}
-	if !watcher(info) {
+	if !watcher.HandleItem(info) {
 		rl.watcher = nil
 	}
 

@@ -37,7 +37,7 @@ func (rl *reqLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Path:   r.URL.Path,
 			Query:  r.URL.RawQuery,
 		}
-		if !watcher(info) {
+		if !watcher.HandleItem(info) {
 			rl.watcher = nil
 		}
 	}
