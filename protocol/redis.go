@@ -10,20 +10,12 @@ import (
 	"code.uber.internal/personal/joshua/gwr"
 )
 
-type RespModel struct {
-	sources  *gwr.DataSources
-	sessions map[*resp.RedisConnection]*RespSession
-}
-
-type RespSession struct {
-	watches     map[string]string
-	stopMonitor chan struct{}
-}
-
+// NewRedisServer creates a new redis server to provide access to a collection
+// of gwr data sources.
 func NewRedisServer(sources *gwr.DataSources) *resp.RedisServer {
-	model := RespModel{
+	model := respModel{
 		sources:  sources,
-		sessions: make(map[*resp.RedisConnection]*RespSession, 1),
+		sessions: make(map[*resp.RedisConnection]*respSession, 1),
 	}
 	handler := resp.CmdMapHandler(map[string]resp.CmdFunc{
 		"ls":      model.handleLs,
@@ -35,11 +27,21 @@ func NewRedisServer(sources *gwr.DataSources) *resp.RedisServer {
 	return resp.NewRedisServer(handler)
 }
 
-func (rm *RespModel) session(rconn *resp.RedisConnection) *RespSession {
+type respModel struct {
+	sources  *gwr.DataSources
+	sessions map[*resp.RedisConnection]*respSession
+}
+
+type respSession struct {
+	watches     map[string]string
+	stopMonitor chan struct{}
+}
+
+func (rm *respModel) session(rconn *resp.RedisConnection) *respSession {
 	if session, ok := rm.sessions[rconn]; ok {
 		return session
 	}
-	session := &RespSession{
+	session := &respSession{
 		watches:     make(map[string]string, 1),
 		stopMonitor: make(chan struct{}, 1),
 	}
@@ -47,7 +49,7 @@ func (rm *RespModel) session(rconn *resp.RedisConnection) *RespSession {
 	return session
 }
 
-func (rm *RespModel) handleLs(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
+func (rm *respModel) handleLs(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
 	// TODO: implement optional path argument
 	// TODO: maybe custom format
 
@@ -58,7 +60,7 @@ func (rm *RespModel) handleLs(rconn *resp.RedisConnection, vc *resp.ValueConsume
 	return rm.doGet(rconn, rm.sources.Get("/meta/nouns"), "text")
 }
 
-func (rm *RespModel) handleGet(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
+func (rm *respModel) handleGet(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
 	source, err := rm.consumeSource(rconn, vc)
 	if err != nil {
 		return err
@@ -76,7 +78,7 @@ func (rm *RespModel) handleGet(rconn *resp.RedisConnection, vc *resp.ValueConsum
 	return rm.doGet(rconn, source, format)
 }
 
-func (rm *RespModel) doGet(rconn *resp.RedisConnection, source gwr.DataSource, format string) error {
+func (rm *respModel) doGet(rconn *resp.RedisConnection, source gwr.DataSource, format string) error {
 	var buf bytes.Buffer
 	if err := source.Get(format, &buf); err != nil {
 		return err
@@ -103,7 +105,7 @@ func (rm *RespModel) doGet(rconn *resp.RedisConnection, source gwr.DataSource, f
 	return nil
 }
 
-func (rm *RespModel) handleWatch(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
+func (rm *respModel) handleWatch(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
 	session := rm.session(rconn)
 
 	source, err := rm.consumeSource(rconn, vc)
@@ -126,7 +128,7 @@ func (rm *RespModel) handleWatch(rconn *resp.RedisConnection, vc *resp.ValueCons
 	return rconn.WriteSimpleString("OK")
 }
 
-func (rm *RespModel) handleMonitor(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
+func (rm *respModel) handleMonitor(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
 	session := rm.session(rconn)
 
 	for vc.NumRemaining() > 0 {
@@ -157,7 +159,7 @@ func (rm *RespModel) handleMonitor(rconn *resp.RedisConnection, vc *resp.ValueCo
 	return nil
 }
 
-func (rm *RespModel) doWatch(rconn *resp.RedisConnection) error {
+func (rm *respModel) doWatch(rconn *resp.RedisConnection) error {
 	type bufInfoEntry struct {
 		name, format string
 	}
@@ -214,7 +216,7 @@ type multiJSONMessage struct {
 	Data *json.RawMessage `json:"data"`
 }
 
-func (rm *RespModel) writeSingleWatchData(rconn *resp.RedisConnection, buf *chanBuf, name, format string) error {
+func (rm *respModel) writeSingleWatchData(rconn *resp.RedisConnection, buf *chanBuf, name, format string) error {
 	switch format {
 	case "text":
 		buf.Lock()
@@ -264,7 +266,7 @@ func (rm *RespModel) writeSingleWatchData(rconn *resp.RedisConnection, buf *chan
 	return nil
 }
 
-func (rm *RespModel) writeMultiWatchData(rconn *resp.RedisConnection, buf *chanBuf, name, format string) error {
+func (rm *respModel) writeMultiWatchData(rconn *resp.RedisConnection, buf *chanBuf, name, format string) error {
 	switch format {
 	case "text":
 		buf.Lock()
@@ -327,7 +329,7 @@ func (rm *RespModel) writeMultiWatchData(rconn *resp.RedisConnection, buf *chanB
 	return nil
 }
 
-func (rm *RespModel) handleEnd(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
+func (rm *respModel) handleEnd(rconn *resp.RedisConnection, vc *resp.ValueConsumer) error {
 	session, ok := rm.sessions[rconn]
 	if !ok {
 		return nil
@@ -339,7 +341,7 @@ func (rm *RespModel) handleEnd(rconn *resp.RedisConnection, vc *resp.ValueConsum
 	return nil
 }
 
-func (rm *RespModel) consumeSource(rconn *resp.RedisConnection, vc *resp.ValueConsumer) (gwr.DataSource, error) {
+func (rm *respModel) consumeSource(rconn *resp.RedisConnection, vc *resp.ValueConsumer) (gwr.DataSource, error) {
 	nameRV, err := vc.Consume("name")
 	if err != nil {
 		return nil, err
@@ -355,7 +357,7 @@ func (rm *RespModel) consumeSource(rconn *resp.RedisConnection, vc *resp.ValueCo
 	return source, nil
 }
 
-func (rm *RespModel) consumeFormat(rconn *resp.RedisConnection, vc *resp.ValueConsumer) (string, error) {
+func (rm *respModel) consumeFormat(rconn *resp.RedisConnection, vc *resp.ValueConsumer) (string, error) {
 	if vc.NumRemaining() == 0 {
 		return "text", nil // XXX default
 	}
