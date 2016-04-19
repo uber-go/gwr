@@ -165,7 +165,7 @@ func (rm *RespModel) doWatch(rconn *resp.RedisConnection) error {
 	session := rm.session(rconn)
 	bufs := make([]*chanBuf, 0, len(session.watches))
 	bufInfo := make(map[*chanBuf]bufInfoEntry, len(session.watches))
-	ready := make(chan *chanBuf, len(session.watches))
+	bufReady := make(chan *chanBuf, len(session.watches))
 	defer func() {
 		for _, buf := range bufs {
 			buf.close()
@@ -177,7 +177,7 @@ func (rm *RespModel) doWatch(rconn *resp.RedisConnection) error {
 		if source == nil {
 			continue
 		}
-		buf := &chanBuf{ready: ready}
+		buf := &chanBuf{ready: bufReady}
 		bufs = append(bufs, buf)
 		bufInfo[buf] = bufInfoEntry{
 			name:   name,
@@ -198,7 +198,7 @@ func (rm *RespModel) doWatch(rconn *resp.RedisConnection) error {
 		select {
 		case <-session.stopMonitor:
 			return nil
-		case buf := <-ready:
+		case buf := <-bufReady:
 			info := bufInfo[buf]
 			if err := write(rconn, buf, info.name, info.format); err != nil {
 				return err
@@ -207,6 +207,11 @@ func (rm *RespModel) doWatch(rconn *resp.RedisConnection) error {
 	}
 
 	return nil
+}
+
+type multiJSONMessage struct {
+	Name string           `json:"name"`
+	Data *json.RawMessage `json:"data"`
 }
 
 func (rm *RespModel) writeSingleWatchData(rconn *resp.RedisConnection, buf *chanBuf, name, format string) error {
@@ -260,11 +265,6 @@ func (rm *RespModel) writeSingleWatchData(rconn *resp.RedisConnection, buf *chan
 }
 
 func (rm *RespModel) writeMultiWatchData(rconn *resp.RedisConnection, buf *chanBuf, name, format string) error {
-	type multiJSONMessage struct {
-		Name string           `json:"name"`
-		Data *json.RawMessage `json:"data"`
-	}
-
 	switch format {
 	case "text":
 		buf.Lock()
