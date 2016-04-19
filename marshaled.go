@@ -242,40 +242,29 @@ func NewMarshaledDataSource(
 	source GenericDataSource,
 	formats map[string]GenericDataFormat,
 ) *MarshaledDataSource {
-	var formatNames []string
-
-	// we need room for json and text defaults plus any specified
-	n := len(formats)
-	if formats["json"] == nil {
-		n++
+	if len(formats) == 0 {
+		formats = make(map[string]GenericDataFormat)
 	}
-	if formats["text"] == nil {
-		// may over estimate by one if source has no TextTemplate; probably not
-		// a big deal
-		n++
-	}
-	watchers := make(map[string]*marshaledWatcher, n)
 
 	// standard json protocol
 	if formats["json"] == nil {
-		formatNames = append(formatNames, "json")
-		watchers["json"] = newMarshaledWatcher(source, LDJSONMarshal)
+		formats["json"] = LDJSONMarshal
 	}
 
 	// convenience templated text protocol
 	if tt := source.TextTemplate(); tt != nil && formats["text"] == nil {
-		formatNames = append(formatNames, "text")
-		watchers["text"] = newMarshaledWatcher(source, NewTemplatedMarshal(tt))
+		formats["text"] = NewTemplatedMarshal(tt)
 	}
 
 	// TODO: source should be able to declare some formats in addition to any
 	// integratgor
 
+	var formatNames []string
+	watchers := make(map[string]*marshaledWatcher, len(formats))
 	for name, format := range formats {
 		formatNames = append(formatNames, name)
 		watchers[name] = newMarshaledWatcher(source, format)
 	}
-
 	return &MarshaledDataSource{
 		source:      source,
 		formats:     formats,
