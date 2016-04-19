@@ -2,3 +2,4 @@
 - benchmarks
 - out-of-box multi tenancy maybe
 - a single hybrid HTTP / Resp protocol so that we only require a single port
+- reporting support is currently unimplemented
