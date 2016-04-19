@@ -60,6 +60,7 @@ func (ib *itemBuf) HandleItems(items [][]byte) error {
 func (ib *itemBuf) drain() [][]byte {
 	ib.Lock()
 	ib.takeBuf = append(ib.takeBuf[:0], ib.buffer...)
+	ib.buffer = ib.buffer[:0]
 	ib.Unlock()
 	return ib.takeBuf
 }
