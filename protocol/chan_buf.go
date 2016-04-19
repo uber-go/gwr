@@ -14,6 +14,7 @@ type chanBuf struct {
 	closed  bool
 	pending bool
 	p       []byte
+	// TODO: limit
 }
 
 func (cb *chanBuf) close() {
@@ -30,6 +31,7 @@ func (cb *chanBuf) Reset() {
 }
 
 func (cb *chanBuf) Write(p []byte) (int, error) {
+	var send bool
 	cb.Lock()
 
 	if cb.closed {
@@ -37,7 +39,6 @@ func (cb *chanBuf) Write(p []byte) (int, error) {
 		return 0, errBufClosed
 	}
 
-	send := false
 	n, err := cb.Buffer.Write(p)
 	if n > 0 && !cb.pending {
 		cb.pending = true
