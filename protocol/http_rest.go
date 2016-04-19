@@ -145,7 +145,7 @@ func (hndl *HTTPRest) doWatch(
 
 	ready := make(chan *chanBuf, 1)
 	var buf = chanBuf{ready: ready}
-	defer buf.close()
+	defer buf.Close()
 
 	if err := source.Watch(formatName, &buf); err != nil {
 		return err

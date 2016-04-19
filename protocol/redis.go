@@ -173,10 +173,10 @@ func (rm *respModel) doWatch(rconn *resp.RedisConnection) error {
 	itemBufReady := make(chan *itemBuf, len(session.watches))
 	defer func() {
 		for _, buf := range bufs {
-			buf.close()
+			buf.Close()
 		}
 		for _, itemBuf := range itemBufs {
-			itemBuf.close()
+			itemBuf.Close()
 		}
 	}()
 

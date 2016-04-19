@@ -17,12 +17,6 @@ type chanBuf struct {
 	// TODO: limit
 }
 
-func (cb *chanBuf) close() {
-	cb.Lock()
-	cb.closed = true
-	cb.Unlock()
-}
-
 var errBufClosed = errors.New("buffer closed")
 
 func (cb *chanBuf) Reset() {
@@ -50,6 +44,15 @@ func (cb *chanBuf) Write(p []byte) (int, error) {
 		cb.ready <- cb
 	}
 	return n, err
+}
+
+func (cb *chanBuf) Close() error {
+	if !cb.closed {
+		cb.Lock()
+		cb.closed = true
+		cb.Unlock()
+	}
+	return nil
 }
 
 func (cb *chanBuf) writeTo(w io.Writer) (int, error) {

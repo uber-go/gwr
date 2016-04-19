@@ -23,12 +23,6 @@ func newItemBuf(ready chan<- *itemBuf) *itemBuf {
 	}
 }
 
-func (ib *itemBuf) close() {
-	ib.Lock()
-	ib.closed = true
-	ib.Unlock()
-}
-
 func (ib *itemBuf) put(items ...[]byte) (int, error) {
 	if ib.closed {
 		return 0, errItemBufClosed
@@ -55,6 +49,15 @@ func (ib *itemBuf) HandleItems(items [][]byte) error {
 		ib.ready <- ib
 	}
 	return err
+}
+
+func (ib *itemBuf) Close() error {
+	if !ib.closed {
+		ib.Lock()
+		ib.closed = true
+		ib.Unlock()
+	}
+	return nil
 }
 
 func (ib *itemBuf) drain() [][]byte {
