@@ -105,49 +105,49 @@ type marshaledWatcher struct {
 }
 
 func newMarshaledWatcher(source GenericDataSource, format GenericDataFormat) *marshaledWatcher {
-	gw := &marshaledWatcher{source: source, format: format}
-	gw.dfw.format = format
-	return gw
+	mw := &marshaledWatcher{source: source, format: format}
+	mw.dfw.format = format
+	return mw
 }
 
-func (gw *marshaledWatcher) init(w io.Writer) error {
-	if err := gw.dfw.init(gw.source.GetInit(), w); err != nil {
+func (mw *marshaledWatcher) init(w io.Writer) error {
+	if err := mw.dfw.init(mw.source.GetInit(), w); err != nil {
 		return err
 	}
-	if len(gw.dfw.writers) == 1 {
-		gw.watchers = append(gw.watchers, &gw.dfw)
+	if len(mw.dfw.writers) == 1 {
+		mw.watchers = append(mw.watchers, &mw.dfw)
 	}
 	return nil
 }
 
-func (gw *marshaledWatcher) initItems(iw ItemWatcher) error {
-	if data := gw.source.GetInit(); data != nil {
-		if buf, err := gw.format.MarshalInit(data); err != nil {
+func (mw *marshaledWatcher) initItems(iw ItemWatcher) error {
+	if data := mw.source.GetInit(); data != nil {
+		if buf, err := mw.format.MarshalInit(data); err != nil {
 			log.Printf("initial marshaling error %v", err)
 			return err
 		} else if err := iw.HandleItem(buf); err != nil {
 			return err
 		}
 	}
-	gw.watchers = append(gw.watchers, iw)
+	mw.watchers = append(mw.watchers, iw)
 	return nil
 }
 
-func (gw *marshaledWatcher) emit(item interface{}) bool {
-	if len(gw.watchers) == 0 {
+func (mw *marshaledWatcher) emit(item interface{}) bool {
+	if len(mw.watchers) == 0 {
 		return false
 	}
-	data, err := gw.format.MarshalItem(item)
+	data, err := mw.format.MarshalItem(item)
 	if err != nil {
 		log.Printf("item marshaling error %v", err)
 		return false
 	}
 
 	var failed []int // TODO: could carry this rather than allocate on failure
-	for i, iw := range gw.watchers {
+	for i, iw := range mw.watchers {
 		if err := iw.HandleItem(data); err != nil {
 			if failed == nil {
-				failed = make([]int, 0, len(gw.watchers))
+				failed = make([]int, 0, len(mw.watchers))
 			}
 			failed = append(failed, i)
 		}
@@ -158,38 +158,38 @@ func (gw *marshaledWatcher) emit(item interface{}) bool {
 
 	var (
 		okay   []ItemWatcher
-		remain = len(gw.watchers) - len(failed)
+		remain = len(mw.watchers) - len(failed)
 	)
 	if remain > 0 {
 		okay = make([]ItemWatcher, 0, remain)
 	}
-	for i, iw := range gw.watchers {
+	for i, iw := range mw.watchers {
 		if i != failed[0] {
 			okay = append(okay, iw)
 		}
 		if i >= failed[0] {
 			failed = failed[1:]
 			if len(failed) == 0 {
-				if j := i + 1; j < len(gw.watchers) {
-					okay = append(okay, gw.watchers[j:]...)
+				if j := i + 1; j < len(mw.watchers) {
+					okay = append(okay, mw.watchers[j:]...)
 				}
 				break
 			}
 		}
 	}
-	gw.watchers = okay
+	mw.watchers = okay
 
-	return len(gw.watchers) != 0
+	return len(mw.watchers) != 0
 }
 
-func (gw *marshaledWatcher) emitBatch(items []interface{}) bool {
-	if len(gw.watchers) == 0 {
+func (mw *marshaledWatcher) emitBatch(items []interface{}) bool {
+	if len(mw.watchers) == 0 {
 		return false
 	}
 
 	data := make([][]byte, len(items))
 	for i, item := range items {
-		buf, err := gw.format.MarshalItem(item)
+		buf, err := mw.format.MarshalItem(item)
 		if err != nil {
 			log.Printf("item marshaling error %v", err)
 			return false
@@ -198,10 +198,10 @@ func (gw *marshaledWatcher) emitBatch(items []interface{}) bool {
 	}
 
 	var failed []int // TODO: could carry this rather than allocate on failure
-	for i, iw := range gw.watchers {
+	for i, iw := range mw.watchers {
 		if err := iw.HandleItems(data); err != nil {
 			if failed == nil {
-				failed = make([]int, 0, len(gw.watchers))
+				failed = make([]int, 0, len(mw.watchers))
 			}
 			failed = append(failed, i)
 		}
@@ -212,28 +212,28 @@ func (gw *marshaledWatcher) emitBatch(items []interface{}) bool {
 
 	var (
 		okay   []ItemWatcher
-		remain = len(gw.watchers) - len(failed)
+		remain = len(mw.watchers) - len(failed)
 	)
 	if remain > 0 {
 		okay = make([]ItemWatcher, 0, remain)
 	}
-	for i, iw := range gw.watchers {
+	for i, iw := range mw.watchers {
 		if i != failed[0] {
 			okay = append(okay, iw)
 		}
 		if i >= failed[0] {
 			failed = failed[1:]
 			if len(failed) == 0 {
-				if j := i + 1; j < len(gw.watchers) {
-					okay = append(okay, gw.watchers[j:]...)
+				if j := i + 1; j < len(mw.watchers) {
+					okay = append(okay, mw.watchers[j:]...)
 				}
 				break
 			}
 		}
 	}
-	gw.watchers = okay
+	mw.watchers = okay
 
-	return len(gw.watchers) != 0
+	return len(mw.watchers) != 0
 }
 
 // NewMarshaledDataSource creates a MarshaledDataSource for a given
