@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"text/template"
 
-	"code.uber.internal/personal/joshua/gwr"
+	"github.com/uber-go/gwr"
 )
 
 type resLogger struct {

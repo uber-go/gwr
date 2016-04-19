@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.uber.internal/personal/joshua/gwr"
-	"code.uber.internal/personal/joshua/gwr/protocol/resp"
+	"github.com/uber-go/gwr"
+	"github.com/uber-go/gwr/protocol/resp"
 )
 
 // NewRedisServer creates a new redis server to provide access to a collection

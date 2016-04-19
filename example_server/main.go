@@ -3,8 +3,8 @@ package main
 import (
 	"net/http"
 
-	"code.uber.internal/personal/joshua/gwr"
-	gwrProto "code.uber.internal/personal/joshua/gwr/protocol"
+	"github.com/uber-go/gwr"
+	gwrProto "github.com/uber-go/gwr/protocol"
 )
 
 func main() {

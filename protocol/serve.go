@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"code.uber.internal/personal/joshua/gwr"
+	"github.com/uber-go/gwr"
 )
 
 // TODO: write a http+resp server that heuristically detects the protocol

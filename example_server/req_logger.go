@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"text/template"
 
-	"code.uber.internal/personal/joshua/gwr"
+	"github.com/uber-go/gwr"
 )
 
 type reqLogger struct {

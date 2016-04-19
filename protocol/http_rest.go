@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.uber.internal/personal/joshua/gwr"
+	"github.com/uber-go/gwr"
 )
 
 var formatContetTypes = map[string]string{
