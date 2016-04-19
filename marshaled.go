@@ -30,6 +30,8 @@ type MarshaledDataSource struct {
 	formatNames []string
 	watchers    map[string]*marshaledWatcher
 	watching    bool
+	itemChan    chan interface{}
+	itemsChan   chan []interface{}
 }
 
 // GenericDataWatcher is the interface for the watcher passed to
@@ -330,11 +332,7 @@ func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
 		return err
 	}
 
-	// TODO: we could optimize the only-one-format-being-watched case
-	if !mds.watching {
-		mds.source.Watch(mds)
-		mds.watching = true
-	}
+	mds.startWatching()
 
 	return nil
 }
@@ -352,13 +350,59 @@ func (mds *MarshaledDataSource) WatchItems(formatName string, iw ItemWatcher) er
 		return err
 	}
 
-	// TODO: we could optimize the only-one-format-being-watched case
-	if !mds.watching {
-		mds.source.Watch(mds)
-		mds.watching = true
-	}
+	mds.startWatching()
 
 	return nil
+}
+
+func (mds *MarshaledDataSource) startWatching() {
+	// TODO: we probably need synchronized access to watching and co
+	// TODO: we could optimize the only-one-format-being-watched case
+	if mds.watching {
+		return
+	}
+	mds.source.Watch(mds)
+	// TODO: tune size
+	mds.itemChan = make(chan interface{}, 100)
+	mds.itemsChan = make(chan []interface{}, 100)
+	mds.watching = true
+	go mds.processItemChan()
+}
+
+func (mds *MarshaledDataSource) stopWatching() {
+	// TODO: we probably need synchronized access to watching and co
+	if !mds.watching {
+		return
+	}
+	mds.watching = false
+}
+
+func (mds *MarshaledDataSource) processItemChan() {
+	for mds.watching {
+		any := false
+
+		select {
+		case item := <-mds.itemChan:
+			for _, watcher := range mds.watchers {
+				if watcher.emit(item) {
+					any = true
+				}
+			}
+
+		case items := <-mds.itemsChan:
+			for _, watcher := range mds.watchers {
+				if watcher.emitBatch(items) {
+					any = true
+				}
+			}
+		}
+
+		if !any {
+			mds.stopWatching()
+		}
+	}
+	mds.itemChan = nil
+	mds.itemsChan = nil
 }
 
 // HandleItem implements GenericDataWatcher.HandleItem by passing the item to
@@ -367,16 +411,14 @@ func (mds *MarshaledDataSource) HandleItem(item interface{}) bool {
 	if !mds.watching {
 		return false
 	}
-	any := false
-	for _, watcher := range mds.watchers {
-		if watcher.emit(item) {
-			any = true
-		}
-	}
-	if !any {
+	select {
+	case mds.itemChan <- item:
+		return true
+	default:
 		mds.watching = false
+		// TODO: clear watchers
+		return false
 	}
-	return any
 }
 
 // HandleItems implements GenericDataWatcher.HandleItems by passing the batch
@@ -385,16 +427,14 @@ func (mds *MarshaledDataSource) HandleItems(items []interface{}) bool {
 	if !mds.watching {
 		return false
 	}
-	any := false
-	for _, watcher := range mds.watchers {
-		if watcher.emitBatch(items) {
-			any = true
-		}
-	}
-	if !any {
+	select {
+	case mds.itemsChan <- items:
+		return true
+	default:
 		mds.watching = false
+		// TODO: clear watchers
+		return false
 	}
-	return any
 }
 
 var errDefaultFrameWatcherDone = errors.New("all defaultFrameWatcher writers done")
