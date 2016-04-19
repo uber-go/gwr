@@ -7,6 +7,8 @@ NOTE: GWR is currently in experimental prototyping phase, buyer beware.
 GWR exposes an HTTP and Resp (Redis Protocol) interface by default on ports
 4040 and 4041.
 
+The following examples are against a running instance of `example_server/`.
+
 ## HTTP
 
 Example for http:
@@ -25,7 +27,6 @@ $ curl localhost:8080/foo
 GET /foo                                                   # this comes from the first watch-curl
 404 19 text/plain; charset=utf-8                           # this comes from the first watch-curl
 ```
-
 
 ## Resp
 
@@ -61,3 +62,16 @@ To define a data source, the easiest way is to implement the
 `gwr.GenericDataSource` interface.
 
 `TODO: example`
+
+For now see `example_server/req_logger.go` and `example_server/res_logger.go`
+
+# Running the example server
+
+Should work by:
+```
+$ go run example_server/*.go
+```
+
+The example server hosts a dummy 404-ing web server on port `8080` and exposes
+a request and response log GWR noun.  The HTTP and Resp usage examples above
+are against it.
