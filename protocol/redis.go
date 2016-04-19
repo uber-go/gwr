@@ -166,11 +166,17 @@ func (rm *respModel) doWatch(rconn *resp.RedisConnection) error {
 
 	session := rm.session(rconn)
 	bufs := make([]*chanBuf, 0, len(session.watches))
+	itemBufs := make([]*itemBuf, 0, len(session.watches))
 	bufInfo := make(map[*chanBuf]bufInfoEntry, len(session.watches))
+	itemBufInfo := make(map[*itemBuf]bufInfoEntry, len(session.watches))
 	bufReady := make(chan *chanBuf, len(session.watches))
+	itemBufReady := make(chan *itemBuf, len(session.watches))
 	defer func() {
 		for _, buf := range bufs {
 			buf.close()
+		}
+		for _, itemBuf := range itemBufs {
+			itemBuf.close()
 		}
 	}()
 
@@ -179,21 +185,34 @@ func (rm *respModel) doWatch(rconn *resp.RedisConnection) error {
 		if source == nil {
 			continue
 		}
-		buf := &chanBuf{ready: bufReady}
-		bufs = append(bufs, buf)
-		bufInfo[buf] = bufInfoEntry{
-			name:   name,
-			format: strings.ToLower(format),
+		if itemSource, ok := source.(gwr.ItemDataSource); ok {
+			itemBuf := newItemBuf(itemBufReady)
+			itemBufs = append(itemBufs, itemBuf)
+			itemBufInfo[itemBuf] = bufInfoEntry{
+				name:   name,
+				format: strings.ToLower(format),
+			}
+			itemSource.WatchItems(format, itemBuf)
+		} else {
+			buf := &chanBuf{ready: bufReady}
+			bufs = append(bufs, buf)
+			bufInfo[buf] = bufInfoEntry{
+				name:   name,
+				format: strings.ToLower(format),
+			}
+			source.Watch(format, buf)
 		}
-		source.Watch(format, buf)
 	}
 
 	var write func(*resp.RedisConnection, *chanBuf, string, string) error
+	var writeItems func(*resp.RedisConnection, *itemBuf, string, string) error
 
 	if len(session.watches) == 1 {
 		write = rm.writeSingleWatchData
+		writeItems = rm.writeSingleWatchItem
 	} else {
 		write = rm.writeMultiWatchData
+		writeItems = rm.writeMultiWatchItem
 	}
 
 	for {
@@ -203,6 +222,11 @@ func (rm *respModel) doWatch(rconn *resp.RedisConnection) error {
 		case buf := <-bufReady:
 			info := bufInfo[buf]
 			if err := write(rconn, buf, info.name, info.format); err != nil {
+				return err
+			}
+		case itemBuf := <-itemBufReady:
+			info := itemBufInfo[itemBuf]
+			if err := writeItems(rconn, itemBuf, info.name, info.format); err != nil {
 				return err
 			}
 		}
@@ -215,6 +239,67 @@ type multiJSONMessage struct {
 	Name string           `json:"name"`
 	Data *json.RawMessage `json:"data"`
 }
+
+func (rm *respModel) writeSingleWatchItem(rconn *resp.RedisConnection, itemBuf *itemBuf, name, format string) error {
+	switch format {
+	case "text":
+		for _, line := range itemBuf.drain() {
+			// TODO: still need to split and send individual lines?
+			if err := rconn.WriteSimpleBytes(line); err != nil {
+				return err
+			}
+		}
+
+	default:
+		for _, buf := range itemBuf.drain() {
+			if err := rconn.WriteBulkBytes(buf); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (rm *respModel) writeMultiWatchItem(rconn *resp.RedisConnection, itemBuf *itemBuf, name, format string) error {
+	switch format {
+	case "text":
+		for _, buf := range itemBuf.drain() {
+			// TODO: still need to split and send individual lines?
+			line := fmt.Sprintf("%s> %s", name, buf)
+			if err := rconn.WriteSimpleString(line); err != nil {
+				return err
+			}
+		}
+
+	case "json":
+		for _, buf := range itemBuf.drain() {
+			if buf, err := json.Marshal(multiJSONMessage{
+				Name: name,
+				Data: (*json.RawMessage)(&buf),
+			}); err != nil {
+				return err
+			} else if err := rconn.WriteBulkBytes(buf); err != nil {
+				return err
+			}
+		}
+
+	default:
+		for _, buf := range itemBuf.drain() {
+			if err := rconn.WriteArrayHeader(2); err != nil {
+				return err
+			}
+			if err := rconn.WriteSimpleString(name); err != nil {
+				return err
+			}
+			if err := rconn.WriteBulkBytes(buf); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// TODO: can we re-use code b/w *WatchData and *WatchItems?
 
 func (rm *respModel) writeSingleWatchData(rconn *resp.RedisConnection, buf *chanBuf, name, format string) error {
 	switch format {
