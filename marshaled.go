@@ -364,6 +364,7 @@ func (mds *MarshaledDataSource) stopWatching() {
 		return
 	}
 	mds.watching = false
+	// TODO: clear watchers
 }
 
 func (mds *MarshaledDataSource) processItemChan() {
@@ -404,8 +405,7 @@ func (mds *MarshaledDataSource) HandleItem(item interface{}) bool {
 	case mds.itemChan <- item:
 		return true
 	default:
-		mds.watching = false
-		// TODO: clear watchers
+		mds.stopWatching()
 		return false
 	}
 }
@@ -420,8 +420,7 @@ func (mds *MarshaledDataSource) HandleItems(items []interface{}) bool {
 	case mds.itemsChan <- items:
 		return true
 	default:
-		mds.watching = false
-		// TODO: clear watchers
+		mds.stopWatching()
 		return false
 	}
 }
