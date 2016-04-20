@@ -11,6 +11,7 @@ import (
 type RedisConnection struct {
 	Conn   net.Conn
 	reader *bufio.Reader
+	// TODO: use a bufio.Writer too
 }
 
 // NewRedisConnection creates a redis connection around an existing net.Conn
