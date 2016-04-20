@@ -4,8 +4,8 @@ NOTE: GWR is currently in experimental prototyping phase, buyer beware.
 
 # Using
 
-GWR exposes an HTTP and Resp (Redis Protocol) interface by default on ports
-4040 and 4041.
+GWR exposes a dual HTTP and RESP (Redis Protocol) interface.  Integrators may
+specify the port, the example below uses 4040.
 
 The following examples are against a running instance of `example_server/`.
 
@@ -31,12 +31,12 @@ GET /foo                                                   # this comes from the
 ## Resp
 
 ```
-$ redis-cli -p 4041 ls                                     # this is a convenience alias for "get /meta/nouns"
+$ redis-cli -p 4040 ls                                     # this is a convenience alias for "get /meta/nouns"
 1) - /meta/nouns formats: <no value>
 2) - /request_log formats: <no value>
 3) - /response_log formats: <no value>
 
-$ redis-cli -p 4041 monitor /request_log text /response_log text&
+$ redis-cli -p 4040 monitor /request_log text /response_log text&
 OK
 
 $ curl localhost:8080/bar
@@ -47,14 +47,13 @@ $ curl localhost:8080/bar
 
 # Integration
 
-To add gwr to a program, all you need to do is call
+To add gwr to a program, all you need to do is call:
 
 ```
-gwrProto.ListenAndServe(nil, nil)
+gwrProto.ListenAndServe(":4040", nil)
 ```
 
-The default is to listen http on port `4040` and resp on port `4041`, which can
-be changed with the first nil argument above.
+This hosts dual protocol HTTP and RESP server on port 4040.
 
 # Defining data sources
 
