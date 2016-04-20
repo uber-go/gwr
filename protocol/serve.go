@@ -9,7 +9,15 @@ import (
 
 // TODO: write a http+resp server that heuristically detects the protocol
 
-// ListenAndServeResp starts a redis protocol gwr server.
+// ListenAndServeAuto starts a dual http/resp protocol gwr server.
+func ListenAndServeAuto(hostPort string, dss *gwr.DataSources) error {
+	if dss == nil {
+		dss = &gwr.DefaultDataSources
+	}
+	return NewAutoServer(dss).ListenAndServe(hostPort)
+}
+
+// ListenAndServeResp starts a resp protocol gwr server.
 func ListenAndServeResp(hostPort string, dss *gwr.DataSources) error {
 	if dss == nil {
 		dss = &gwr.DefaultDataSources
@@ -28,6 +36,7 @@ func ListenAndServeHTTP(hostPort string, dss *gwr.DataSources) error {
 // ProtoListenAndServe maps protocol names to listenAndServe func(hostPort
 // string) error.
 var ProtoListenAndServe = map[string]func(string, *gwr.DataSources) error{
+	"auto": ListenAndServeAuto,
 	"resp": ListenAndServeResp,
 	"http": ListenAndServeHTTP,
 }
