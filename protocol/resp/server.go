@@ -31,7 +31,7 @@ func (h RedisServer) Serve(ln net.Listener) error {
 			fmt.Printf("ERROR: accept error: %v", err)
 			continue
 		}
-		go NewRedisConnection(conn).Handle(h.consumer)
+		go NewRedisConnection(conn, nil).Handle(h.consumer)
 	}
 	return nil
 }

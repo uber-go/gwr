@@ -13,11 +13,16 @@ type RedisConnection struct {
 	reader *bufio.Reader
 }
 
-// NewRedisConnection creates a redis connection around an existing net.Conn.
-func NewRedisConnection(conn net.Conn) *RedisConnection {
+// NewRedisConnection creates a redis connection around an existing net.Conn
+// and an optional reader (e.g. a bufio.Reader that's already been created
+// around the net.Conn).  If r is nill, conn is used instead.
+func NewRedisConnection(conn net.Conn, r io.Reader) *RedisConnection {
+	if r == nil {
+		r = conn
+	}
 	return &RedisConnection{
 		Conn:   conn,
-		reader: bufio.NewReader(conn),
+		reader: bufio.NewReader(r),
 	}
 }
 
