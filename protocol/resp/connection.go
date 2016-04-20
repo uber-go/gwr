@@ -13,6 +13,7 @@ type RedisConnection struct {
 	reader *bufio.Reader
 }
 
+// NewRedisConnection creates a redis connection around an existing net.Conn.
 func NewRedisConnection(conn net.Conn) *RedisConnection {
 	return &RedisConnection{
 		Conn:   conn,
@@ -20,10 +21,12 @@ func NewRedisConnection(conn net.Conn) *RedisConnection {
 	}
 }
 
+// Close closes the underlying connection.
 func (rconn *RedisConnection) Close() error {
 	return rconn.Conn.Close()
 }
 
+// Handle runs the passed handler until the connection ends or errors.
 func (rconn *RedisConnection) Handle(handler RedisHandler) {
 	if err := rconn.handle(handler); err != nil {
 		fmt.Printf("redis handler error from %v: %v\n", rconn.Conn.RemoteAddr(), err)
@@ -51,6 +54,7 @@ func (rconn *RedisConnection) handle(handler RedisHandler) error {
 	return handler.HandleEnd(rconn)
 }
 
+// Consume reads one element from the connection and passes it to the given handler.
 func (rconn *RedisConnection) Consume(handler RedisHandler) error {
 	c, err := rconn.reader.ReadByte()
 	if err != nil {
@@ -240,22 +244,27 @@ func (rconn *RedisConnection) scanLine() ([]byte, error) {
 	return buf, nil
 }
 
+// WriteArrayHeader writes a "*N\r\n" array header.
 func (rconn *RedisConnection) WriteArrayHeader(num int) error {
 	return rconn.writef("*%v\r\n", num)
 }
 
+// WriteInteger writes a ":N\r\n" integer literal
 func (rconn *RedisConnection) WriteInteger(num int) error {
 	return rconn.writef(":%v\r\n", num)
 }
 
+// WriteNull writes a "$-1\r\n" null string
 func (rconn *RedisConnection) WriteNull() error {
 	return rconn.write([]byte("$-1\r\n"))
 }
 
+// WriteNullArray writes a "*-1\r\n" null array
 func (rconn *RedisConnection) WriteNullArray() error {
 	return rconn.write([]byte("*-1\r\n"))
 }
 
+// WriteBulkBytes writes "$N\r\n...\r\n" bulk string from a byte slice.
 func (rconn *RedisConnection) WriteBulkBytes(buf []byte) error {
 	n := len(buf)
 	if n == 0 {
@@ -273,14 +282,17 @@ func (rconn *RedisConnection) WriteBulkBytes(buf []byte) error {
 	return rconn.write([]byte("\r\n"))
 }
 
+// WriteBulkStringHeader writes a "$N\r\n" bulk string header.
 func (rconn *RedisConnection) WriteBulkStringHeader(n int) error {
 	return rconn.writef("$%v\r\n", n)
 }
 
+// WriteBulkStringFooter writes a "\r\n" bulk string footer.
 func (rconn *RedisConnection) WriteBulkStringFooter() error {
 	return rconn.write([]byte("\r\n"))
 }
 
+// WriteBulkString writes a "$N\r\n...\r\n" bulk string.
 func (rconn *RedisConnection) WriteBulkString(str string) error {
 	n := len(str)
 	if n == 0 {
@@ -289,18 +301,22 @@ func (rconn *RedisConnection) WriteBulkString(str string) error {
 	return rconn.writef("$%v\r\n%v\r\n", n, str)
 }
 
+// WriteSimpleString writes a "+...\r\n" simple string.
 func (rconn *RedisConnection) WriteSimpleString(str string) error {
 	return rconn.writef("+%v\r\n", str)
 }
 
+// WriteSimpleBytes writes a "+...\r\n" simple string froma byte slice.
 func (rconn *RedisConnection) WriteSimpleBytes(b []byte) error {
 	return rconn.writef("+%s\r\n", b)
 }
 
+// WriteError writes a "-ERR...\r\n" error.
 func (rconn *RedisConnection) WriteError(err error) error {
 	return rconn.writef("-ERR %v\r\n", err)
 }
 
+// WriteErrorBytes writes a "-...\r\n" error from a byte slice.
 func (rconn *RedisConnection) WriteErrorBytes(b []byte) error {
 	if _, err := rconn.Conn.Write([]byte("-")); err != nil {
 		return err
@@ -314,7 +330,8 @@ func (rconn *RedisConnection) WriteErrorBytes(b []byte) error {
 	return nil
 }
 
-func (rconn *RedisConnection) WriteErrorString(errType string, str string) error {
+// WriteErrorString writes a "-TYPE ...\r\n" error from a string type and body.
+func (rconn *RedisConnection) WriteErrorString(errType, str string) error {
 	return rconn.writef("-%v %v\r\n", errType, str)
 }
 
