@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/uber-go/gwr"
+	"github.com/uber-go/gwr/protocol/resp"
 )
 
 // ListenAndServeResp starts a resp protocol gwr server.
@@ -30,5 +31,6 @@ func ListenAndServe(hostPort string, dss *gwr.DataSources) error {
 	if dss == nil {
 		dss = &gwr.DefaultDataSources
 	}
-	return NewAutoServer(dss).ListenAndServe(hostPort)
+	srv := resp.WrapHTTPHandler(NewRedisHandler(dss), NewHTTPRest(dss, ""))
+	return srv.ListenAndServe(hostPort)
 }
