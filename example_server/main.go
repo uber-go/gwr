@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/uber-go/gwr"
@@ -9,7 +10,7 @@ import (
 
 func main() {
 	go func() {
-		gwrProto.ListenAndServe(nil, nil)
+		log.Fatal(gwrProto.ListenAndServe(":4040", nil))
 	}()
 
 	resLog := &resLogger{handler: http.DefaultServeMux}
@@ -18,5 +19,5 @@ func main() {
 	gwr.AddMarshaledDataSource(reqLog)
 	gwr.AddMarshaledDataSource(resLog)
 
-	http.ListenAndServe(":8080", reqLog)
+	log.Fatal(http.ListenAndServe(":8080", reqLog))
 }
