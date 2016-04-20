@@ -110,6 +110,22 @@ func newMarshaledWatcher(source GenericDataSource, format GenericDataFormat) *ma
 	return mw
 }
 
+func (mw *marshaledWatcher) Close() error {
+	var errs []error
+	for _, watcher := range mw.watchers {
+		if closer, ok := watcher.(io.Closer); ok {
+			if err := closer.Close(); err != nil {
+				if errs == nil {
+					errs = make([]error, 0, len(mw.watchers))
+				}
+				errs = append(errs, err)
+			}
+		}
+	}
+	mw.watchers = mw.watchers[:0]
+	return MultiErr(errs).AsError()
+}
+
 func (mw *marshaledWatcher) init(w io.Writer) error {
 	if err := mw.dfw.init(mw.source.GetInit(), w); err != nil {
 		return err
