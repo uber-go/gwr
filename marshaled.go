@@ -496,6 +496,22 @@ func (dfw *defaultFrameWatcher) HandleItems(items [][]byte) error {
 	return nil
 }
 
+func (dfw *defaultFrameWatcher) Close() error {
+	var errs []error
+	for _, writer := range dfw.writers {
+		if closer, ok := writer.(io.Closer); ok {
+			if err := closer.Close(); err != nil {
+				if errs == nil {
+					errs = make([]error, 0, len(dfw.writers))
+				}
+				errs = append(errs, err)
+			}
+		}
+	}
+	dfw.writers = dfw.writers[:0]
+	return MultiErr(errs).AsError()
+}
+
 func (dfw *defaultFrameWatcher) writeToAll(buf []byte) error {
 	// TODO: avoid blocking fan out, parallelize; error back-propagation then
 	// needs to happen over another channel
