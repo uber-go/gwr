@@ -380,7 +380,9 @@ func (mds *MarshaledDataSource) stopWatching() {
 		return
 	}
 	mds.watching = false
-	// TODO: clear watchers
+	for _, watcher := range mds.watchers {
+		watcher.Close()
+	}
 }
 
 func (mds *MarshaledDataSource) processItemChan() {
