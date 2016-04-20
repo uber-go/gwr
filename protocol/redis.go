@@ -13,18 +13,24 @@ import (
 // NewRedisServer creates a new redis server to provide access to a collection
 // of gwr data sources.
 func NewRedisServer(sources *gwr.DataSources) *resp.RedisServer {
+	handler := NewRedisHandler(sources)
+	return resp.NewRedisServer(handler)
+}
+
+// NewRedisHandler creates a new redis handler for a given collection of gwr
+// data sources for use with the resp package.
+func NewRedisHandler(sources *gwr.DataSources) resp.RedisHandler {
 	model := respModel{
 		sources:  sources,
 		sessions: make(map[*resp.RedisConnection]*respSession, 1),
 	}
-	handler := resp.CmdMapHandler(map[string]resp.CmdFunc{
+	return resp.CmdMapHandler(map[string]resp.CmdFunc{
 		"ls":      model.handleLs,
 		"get":     model.handleGet,
 		"watch":   model.handleWatch,
 		"monitor": model.handleMonitor,
 		"__end__": model.handleEnd,
 	})
-	return resp.NewRedisServer(handler)
 }
 
 type respModel struct {
