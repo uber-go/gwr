@@ -9,7 +9,6 @@ import (
 )
 
 // TODO: punts on any locking concerns
-// TODO: .emit(interface{}) vs chan interface{}
 
 // NOTE: This approach is perhaps overfit to the json module's marshalling
 // mindset.  A better interface (for performance) would work by passing a
