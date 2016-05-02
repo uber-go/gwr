@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+var errBufClosed = errors.New("buffer closed")
+
 type chanBuf struct {
 	sync.Mutex
 	bytes.Buffer
@@ -16,8 +18,6 @@ type chanBuf struct {
 	p       []byte
 	// TODO: limit
 }
-
-var errBufClosed = errors.New("buffer closed")
 
 func (cb *chanBuf) Reset() {
 	cb.pending = false
