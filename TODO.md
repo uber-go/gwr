@@ -3,3 +3,7 @@
 - out-of-box multi tenancy maybe
 - reporting support is currently unimplemented
 - redis pub/sub pattern may provide better experience than monitor
+- more example integrations
+  - metrics
+  - app logging
+- a collection agent based on watch and then later report
