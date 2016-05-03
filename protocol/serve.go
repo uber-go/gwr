@@ -5,6 +5,7 @@ import (
 
 	"github.com/uber-go/gwr"
 	"github.com/uber-go/gwr/protocol/resp"
+	"github.com/uber-go/gwr/protocol/stacked"
 )
 
 // ListenAndServeResp starts a resp protocol gwr server.
@@ -25,12 +26,19 @@ func ListenAndServeHTTP(hostPort string, dss *gwr.DataSources) error {
 
 // TODO: support environment variable and/or flag for port(s)
 
-// ListenAndServe starts an "auto" protocol server that will respond to HTTP or
-// RESP on the given hostPort.
-func ListenAndServe(hostPort string, dss *gwr.DataSources) error {
+// NewServer creates an "auto" protocol server that will respond to HTTP or
+// RESP requests.
+func NewServer(dss *gwr.DataSources) *stacked.Server {
 	if dss == nil {
 		dss = &gwr.DefaultDataSources
 	}
-	srv := resp.WrapHTTPHandler(NewRedisHandler(dss), NewHTTPRest(dss, ""))
-	return srv.ListenAndServe(hostPort)
+	hh := NewHTTPRest(dss, "")
+	rh := NewRedisHandler(dss)
+	return resp.WrapHTTPHandler(rh, hh)
+}
+
+// ListenAndServe starts an "auto" protocol server that will respond to HTTP or
+// RESP on the given hostPort.
+func ListenAndServe(hostPort string, dss *gwr.DataSources) error {
+	return NewServer(dss).ListenAndServe(hostPort)
 }

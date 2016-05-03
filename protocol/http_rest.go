@@ -76,14 +76,15 @@ func (hndl *HTTPRest) routeVerb(
 
 	switch strings.ToLower(r.Method) {
 	case "get":
-		if err := hndl.doGet(source, w, r); err != nil {
-			return err
+		if r.Form.Get("watch") != "" {
+			// convenience for http clients that don't easily support custom
+			// method strings
+			return hndl.doWatch(source, w, r)
 		}
+		return hndl.doGet(source, w, r)
 
 	case "watch":
-		if err := hndl.doWatch(source, w, r); err != nil {
-			return err
-		}
+		return hndl.doWatch(source, w, r)
 
 	default:
 		w.Header().Set("Allow", "GET, WATCH")
