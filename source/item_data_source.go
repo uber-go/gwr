@@ -1,4 +1,4 @@
-package gwr
+package source
 
 // ItemDataSource is an interface implemented by a data source to provide
 // marshaled but unframed streams of Watch items.  When implemented protocol

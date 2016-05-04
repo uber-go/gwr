@@ -1,11 +1,13 @@
-package gwr
+package marshaled
 
 import (
 	"errors"
 	"io"
 	"log"
 	"strings"
-	"text/template"
+
+	"github.com/uber-go/gwr/internal"
+	"github.com/uber-go/gwr/source"
 )
 
 // TODO: punts on any locking concerns
@@ -16,16 +18,16 @@ import (
 // function.  This would be possible perhaps using something like
 // io.MultiWriter.
 
-// MarshaledDataSource wraps a format-agnostic data source and provides one or
+// DataSource wraps a format-agnostic data source and provides one or
 // more formats for it.
 //
-// MarshaledDataSource implements:
+// DataSource implements:
 // - DataSource to satisfy DataSources and low level protocols
 // - ItemDataSource so that higher level protocols may add their own framing
 // - GenericDataWatcher inwardly to the wrapped GenericDataSource
-type MarshaledDataSource struct {
-	source      GenericDataSource
-	formats     map[string]GenericDataFormat
+type DataSource struct {
+	source      source.GenericDataSource
+	formats     map[string]source.GenericDataFormat
 	formatNames []string
 	watchers    map[string]*marshaledWatcher
 	watching    bool
@@ -33,77 +35,20 @@ type MarshaledDataSource struct {
 	itemsChan   chan []interface{}
 }
 
-// GenericDataWatcher is the interface for the watcher passed to
-// GenericDataSource.Watch. Both single-item and batch methods are provided.
-type GenericDataWatcher interface {
-	// HandleItem is called with a single item of generic unmarshaled data.
-	HandleItem(item interface{}) bool
-
-	// HandleItem is called with a batch of generic unmarshaled data.
-	HandleItems(items []interface{}) bool
-}
-
-// GenericDataSource is a format-agnostic data source
-type GenericDataSource interface {
-	// Name must return the name of the data source; see DataSource.Name.
-	Name() string
-
-	// Attrs returns any descriptors of the generic data source; see
-	// DataSource.Name.
-	Attrs() map[string]interface{}
-
-	// TextTemplate returns the text/template that is used to construct a
-	// TemplatedMarshal to implement the "text" format for this data source.
-	TextTemplate() *template.Template
-
-	// Get should return any data available for the data source.  A nil value
-	// should  result in a ErrNotGetable.  If a generic data source wants a
-	// marshaled null value, its Get must return a non-nil interface value.
-	Get() interface{}
-
-	// GetInit should return any initial data to send to a new watch stream.
-	// Similarly to Get a nil value will not be marshaled, but no error will be
-	// returned to the Watch request.
-	GetInit() interface{}
-
-	// Watch sets the current (singular!) watcher.  Implementations must call
-	// the passed watcher until it returns false, or until a new watcher is
-	// passed by a future call of Watch.
-	Watch(GenericDataWatcher)
-}
-
-// GenericDataFormat provides both a data marshaling protocol and a framing
-// protocol for the watch stream.  Any marshaling or framing error should cause
-// a break in any watch streams subscribed to this format.
-type GenericDataFormat interface {
-	// Marshal serializes the passed data from GenericDataSource.Get.
-	MarshalGet(interface{}) ([]byte, error)
-
-	// Marshal serializes the passed data from GenericDataSource.GetInit.
-	MarshalInit(interface{}) ([]byte, error)
-
-	// Marshal serializes data passed to a GenericDataWatcher.
-	MarshalItem(interface{}) ([]byte, error)
-
-	// FrameItem wraps a MarshalItem-ed byte buffer for a watch stream.
-	FrameItem([]byte) ([]byte, error)
-}
-
 // marshaledWatcher manages all of the low level io.Writers for a given format.
-// Instances are created once for each MarshaledDataSource.
+// Instances are created once for each DataSource.
 //
-// MarshaledDataSource then manages calling marshaledWatcher.emit for each data
-// item as long as there is one valid io.Writer for a given format.  Once the
-// last marshaledWatcher goes idle, the underlying GenericDataSource watch is
-// ended.
+// DataSource then manages calling marshaledWatcher.emit for each data item as
+// long as there is one valid io.Writer for a given format.  Once the last
+// marshaledWatcher goes idle, the underlying GenericDataSource watch is ended.
 type marshaledWatcher struct {
-	source   GenericDataSource
-	format   GenericDataFormat
+	source   source.GenericDataSource
+	format   source.GenericDataFormat
 	dfw      defaultFrameWatcher
-	watchers []ItemWatcher
+	watchers []source.ItemWatcher
 }
 
-func newMarshaledWatcher(source GenericDataSource, format GenericDataFormat) *marshaledWatcher {
+func newMarshaledWatcher(source source.GenericDataSource, format source.GenericDataFormat) *marshaledWatcher {
 	mw := &marshaledWatcher{source: source, format: format}
 	mw.dfw.format = format
 	return mw
@@ -122,7 +67,7 @@ func (mw *marshaledWatcher) Close() error {
 		}
 	}
 	mw.watchers = mw.watchers[:0]
-	return MultiErr(errs).AsError()
+	return internal.MultiErr(errs).AsError()
 }
 
 func (mw *marshaledWatcher) init(w io.Writer) error {
@@ -135,7 +80,7 @@ func (mw *marshaledWatcher) init(w io.Writer) error {
 	return nil
 }
 
-func (mw *marshaledWatcher) initItems(iw ItemWatcher) error {
+func (mw *marshaledWatcher) initItems(iw source.ItemWatcher) error {
 	if data := mw.source.GetInit(); data != nil {
 		if buf, err := mw.format.MarshalInit(data); err != nil {
 			log.Printf("initial marshaling error %v", err)
@@ -172,11 +117,11 @@ func (mw *marshaledWatcher) emit(item interface{}) bool {
 	}
 
 	var (
-		okay   []ItemWatcher
+		okay   []source.ItemWatcher
 		remain = len(mw.watchers) - len(failed)
 	)
 	if remain > 0 {
-		okay = make([]ItemWatcher, 0, remain)
+		okay = make([]source.ItemWatcher, 0, remain)
 	}
 	for i, iw := range mw.watchers {
 		if i != failed[0] {
@@ -226,11 +171,11 @@ func (mw *marshaledWatcher) emitBatch(items []interface{}) bool {
 	}
 
 	var (
-		okay   []ItemWatcher
+		okay   []source.ItemWatcher
 		remain = len(mw.watchers) - len(failed)
 	)
 	if remain > 0 {
-		okay = make([]ItemWatcher, 0, remain)
+		okay = make([]source.ItemWatcher, 0, remain)
 	}
 	for i, iw := range mw.watchers {
 		if i != failed[0] {
@@ -251,14 +196,14 @@ func (mw *marshaledWatcher) emitBatch(items []interface{}) bool {
 	return len(mw.watchers) != 0
 }
 
-// NewMarshaledDataSource creates a MarshaledDataSource for a given
-// format-agnostic data source and a map of marshalers
-func NewMarshaledDataSource(
-	source GenericDataSource,
-	formats map[string]GenericDataFormat,
-) *MarshaledDataSource {
+// NewDataSource creates a DataSource for a given format-agnostic data source
+// and a map of marshalers
+func NewDataSource(
+	src source.GenericDataSource,
+	formats map[string]source.GenericDataFormat,
+) *DataSource {
 	if len(formats) == 0 {
-		formats = make(map[string]GenericDataFormat)
+		formats = make(map[string]source.GenericDataFormat)
 	}
 
 	// standard json protocol
@@ -267,7 +212,7 @@ func NewMarshaledDataSource(
 	}
 
 	// convenience templated text protocol
-	if tt := source.TextTemplate(); tt != nil && formats["text"] == nil {
+	if tt := src.TextTemplate(); tt != nil && formats["text"] == nil {
 		formats["text"] = NewTemplatedMarshal(tt)
 	}
 
@@ -278,10 +223,10 @@ func NewMarshaledDataSource(
 	watchers := make(map[string]*marshaledWatcher, len(formats))
 	for name, format := range formats {
 		formatNames = append(formatNames, name)
-		watchers[name] = newMarshaledWatcher(source, format)
+		watchers[name] = newMarshaledWatcher(src, format)
 	}
-	return &MarshaledDataSource{
-		source:      source,
+	return &DataSource{
+		source:      src,
 		formats:     formats,
 		formatNames: formatNames,
 		watchers:    watchers,
@@ -289,30 +234,30 @@ func NewMarshaledDataSource(
 }
 
 // Name passes through the GenericDataSource.Name()
-func (mds *MarshaledDataSource) Name() string {
+func (mds *DataSource) Name() string {
 	return mds.source.Name()
 }
 
 // Formats returns the list of supported format names.
-func (mds *MarshaledDataSource) Formats() []string {
+func (mds *DataSource) Formats() []string {
 	return mds.formatNames
 }
 
 // Attrs returns arbitrary description information about the data source.
-func (mds *MarshaledDataSource) Attrs() map[string]interface{} {
+func (mds *DataSource) Attrs() map[string]interface{} {
 	// TODO: support per-format Attrs?
 	return mds.source.Attrs()
 }
 
 // Get marshals data source's Get data to the writer
-func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
+func (mds *DataSource) Get(formatName string, w io.Writer) error {
 	format, ok := mds.formats[strings.ToLower(formatName)]
 	if !ok {
-		return ErrUnsupportedFormat
+		return source.ErrUnsupportedFormat
 	}
 	data := mds.source.Get()
 	if data == nil {
-		return ErrNotGetable
+		return source.ErrNotGetable
 	}
 	buf, err := format.MarshalGet(data)
 	if err != nil {
@@ -326,10 +271,10 @@ func (mds *MarshaledDataSource) Get(formatName string, w io.Writer) error {
 // Watch marshals any data source GetInit data to the writer, and then
 // retains a reference to the writer so that any future agnostic data source
 // Watch(emit)'ed data gets marshaled to it as well
-func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
+func (mds *DataSource) Watch(formatName string, w io.Writer) error {
 	watcher, ok := mds.watchers[strings.ToLower(formatName)]
 	if !ok {
-		return ErrUnsupportedFormat
+		return source.ErrUnsupportedFormat
 	}
 
 	if err := watcher.init(w); err != nil {
@@ -344,10 +289,10 @@ func (mds *MarshaledDataSource) Watch(formatName string, w io.Writer) error {
 // WatchItems marshals any data source GetInit data as a single item to the
 // ItemWatcher's HandleItem method.  The watcher is then retained and future
 // items are marshaled to its HandleItem method.
-func (mds *MarshaledDataSource) WatchItems(formatName string, iw ItemWatcher) error {
+func (mds *DataSource) WatchItems(formatName string, iw source.ItemWatcher) error {
 	watcher, ok := mds.watchers[strings.ToLower(formatName)]
 	if !ok {
-		return ErrUnsupportedFormat
+		return source.ErrUnsupportedFormat
 	}
 
 	if err := watcher.initItems(iw); err != nil {
@@ -359,7 +304,7 @@ func (mds *MarshaledDataSource) WatchItems(formatName string, iw ItemWatcher) er
 	return nil
 }
 
-func (mds *MarshaledDataSource) startWatching() {
+func (mds *DataSource) startWatching() {
 	// TODO: we probably need synchronized access to watching and co
 	// TODO: we could optimize the only-one-format-being-watched case
 	if mds.watching {
@@ -373,7 +318,7 @@ func (mds *MarshaledDataSource) startWatching() {
 	go mds.processItemChan()
 }
 
-func (mds *MarshaledDataSource) stopWatching() {
+func (mds *DataSource) stopWatching() {
 	// TODO: we probably need synchronized access to watching and co
 	if !mds.watching {
 		return
@@ -384,7 +329,7 @@ func (mds *MarshaledDataSource) stopWatching() {
 	}
 }
 
-func (mds *MarshaledDataSource) processItemChan() {
+func (mds *DataSource) processItemChan() {
 	for mds.watching {
 		any := false
 
@@ -414,7 +359,7 @@ func (mds *MarshaledDataSource) processItemChan() {
 
 // HandleItem implements GenericDataWatcher.HandleItem by passing the item to
 // all current marshaledWatchers.
-func (mds *MarshaledDataSource) HandleItem(item interface{}) bool {
+func (mds *DataSource) HandleItem(item interface{}) bool {
 	if !mds.watching {
 		return false
 	}
@@ -429,7 +374,7 @@ func (mds *MarshaledDataSource) HandleItem(item interface{}) bool {
 
 // HandleItems implements GenericDataWatcher.HandleItems by passing the batch
 // to all current marshaledWatchers.
-func (mds *MarshaledDataSource) HandleItems(items []interface{}) bool {
+func (mds *DataSource) HandleItems(items []interface{}) bool {
 	if !mds.watching {
 		return false
 	}
@@ -445,7 +390,7 @@ func (mds *MarshaledDataSource) HandleItems(items []interface{}) bool {
 var errDefaultFrameWatcherDone = errors.New("all defaultFrameWatcher writers done")
 
 type defaultFrameWatcher struct {
-	format  GenericDataFormat
+	format  source.GenericDataFormat
 	writers []io.Writer
 }
 
@@ -510,7 +455,7 @@ func (dfw *defaultFrameWatcher) Close() error {
 		}
 	}
 	dfw.writers = dfw.writers[:0]
-	return MultiErr(errs).AsError()
+	return internal.MultiErr(errs).AsError()
 }
 
 func (dfw *defaultFrameWatcher) writeToAll(buf []byte) error {

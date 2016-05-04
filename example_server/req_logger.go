@@ -4,12 +4,12 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/uber-go/gwr"
+	"github.com/uber-go/gwr/source"
 )
 
 type reqLogger struct {
 	handler http.Handler
-	watcher gwr.GenericDataWatcher
+	watcher source.GenericDataWatcher
 }
 
 func logged(handler http.Handler) *reqLogger {
@@ -64,6 +64,6 @@ func (rl *reqLogger) GetInit() interface{} {
 	return nil
 }
 
-func (rl *reqLogger) Watch(watcher gwr.GenericDataWatcher) {
+func (rl *reqLogger) Watch(watcher source.GenericDataWatcher) {
 	rl.watcher = watcher
 }

@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/uber-go/gwr/protocol/stacked"
+	"github.com/uber-go/gwr/internal/stacked"
 )
 
 // RedisServer serves a RedisHandler on a listening socket.

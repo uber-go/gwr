@@ -5,12 +5,12 @@ import (
 	"net/http/httptest"
 	"text/template"
 
-	"github.com/uber-go/gwr"
+	"github.com/uber-go/gwr/source"
 )
 
 type resLogger struct {
 	handler http.Handler
-	watcher gwr.GenericDataWatcher
+	watcher source.GenericDataWatcher
 }
 
 type resInfo struct {
@@ -72,6 +72,6 @@ func (rl *resLogger) GetInit() interface{} {
 	return nil
 }
 
-func (rl *resLogger) Watch(watcher gwr.GenericDataWatcher) {
+func (rl *resLogger) Watch(watcher source.GenericDataWatcher) {
 	rl.watcher = watcher
 }

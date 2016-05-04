@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/uber-go/gwr"
+	"github.com/uber-go/gwr/source"
 )
 
 var formatContetTypes = map[string]string{
@@ -16,21 +16,17 @@ var formatContetTypes = map[string]string{
 	"html": "text/html",
 }
 
-func init() {
-	http.Handle("/gwr/", NewHTTPRest(&gwr.DefaultDataSources, "/gwr"))
-}
-
 // HTTPRest implements http.Handler to host a collection of data sources
 // REST-fully.
 type HTTPRest struct {
 	defaultFormats []string
 	prefix         string
-	dss            *gwr.DataSources
+	dss            *source.DataSources
 }
 
 // NewHTTPRest returns an http.Handler to host the data sources REST-fully at a
 // given prefix.
-func NewHTTPRest(dss *gwr.DataSources, prefix string) *HTTPRest {
+func NewHTTPRest(dss *source.DataSources, prefix string) *HTTPRest {
 	return &HTTPRest{
 		defaultFormats: []string{"text", "json"},
 		prefix:         prefix,
@@ -66,7 +62,7 @@ func (hndl *HTTPRest) routeSource(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (hndl *HTTPRest) routeVerb(
-	source gwr.DataSource,
+	source source.DataSource,
 	w http.ResponseWriter,
 	r *http.Request,
 ) error {
@@ -95,7 +91,7 @@ func (hndl *HTTPRest) routeVerb(
 }
 
 func (hndl *HTTPRest) doGet(
-	source gwr.DataSource,
+	source source.DataSource,
 	w http.ResponseWriter,
 	r *http.Request,
 ) error {
@@ -135,7 +131,7 @@ func (fw *flushWriter) Write(p []byte) (int, error) {
 }
 
 func (hndl *HTTPRest) doWatch(
-	source gwr.DataSource,
+	source source.DataSource,
 	w http.ResponseWriter,
 	r *http.Request,
 ) error {
@@ -187,7 +183,7 @@ func (hndl *HTTPRest) doWatch(
 }
 
 func (hndl *HTTPRest) determineFormat(
-	source gwr.DataSource,
+	source source.DataSource,
 	w http.ResponseWriter,
 	r *http.Request,
 ) (string, error) {

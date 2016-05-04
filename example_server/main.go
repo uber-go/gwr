@@ -5,12 +5,11 @@ import (
 	"net/http"
 
 	"github.com/uber-go/gwr"
-	gwrProto "github.com/uber-go/gwr/protocol"
 )
 
 func main() {
 	go func() {
-		log.Fatal(gwrProto.ListenAndServe(":4040", nil))
+		log.Fatal(gwr.ListenAndServe(":4040", nil))
 	}()
 
 	resLog := &resLogger{handler: http.DefaultServeMux}

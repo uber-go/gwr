@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/uber-go/gwr"
-	"github.com/uber-go/gwr/protocol/resp"
+	"github.com/uber-go/gwr/internal/resp"
+	"github.com/uber-go/gwr/source"
 )
 
 // NewRedisServer creates a new redis server to provide access to a collection
 // of gwr data sources.
-func NewRedisServer(sources *gwr.DataSources) *resp.RedisServer {
+func NewRedisServer(sources *source.DataSources) *resp.RedisServer {
 	handler := NewRedisHandler(sources)
 	return resp.NewRedisServer(handler)
 }
 
 // NewRedisHandler creates a new redis handler for a given collection of gwr
 // data sources for use with the resp package.
-func NewRedisHandler(sources *gwr.DataSources) resp.RedisHandler {
+func NewRedisHandler(sources *source.DataSources) resp.RedisHandler {
 	model := respModel{
 		sources:  sources,
 		sessions: make(map[*resp.RedisConnection]*respSession, 1),
@@ -34,7 +34,7 @@ func NewRedisHandler(sources *gwr.DataSources) resp.RedisHandler {
 }
 
 type respModel struct {
-	sources  *gwr.DataSources
+	sources  *source.DataSources
 	sessions map[*resp.RedisConnection]*respSession
 }
 
@@ -84,7 +84,7 @@ func (rm *respModel) handleGet(rconn *resp.RedisConnection, vc *resp.ValueConsum
 	return rm.doGet(rconn, source, format)
 }
 
-func (rm *respModel) doGet(rconn *resp.RedisConnection, source gwr.DataSource, format string) error {
+func (rm *respModel) doGet(rconn *resp.RedisConnection, source source.DataSource, format string) error {
 	var buf bytes.Buffer
 	if err := source.Get(format, &buf); err != nil {
 		return err
@@ -187,11 +187,11 @@ func (rm *respModel) doWatch(rconn *resp.RedisConnection) error {
 	}()
 
 	for name, format := range session.watches {
-		source := rm.sources.Get(name)
-		if source == nil {
+		src := rm.sources.Get(name)
+		if src == nil {
 			continue
 		}
-		if itemSource, ok := source.(gwr.ItemDataSource); ok {
+		if itemSource, ok := src.(source.ItemDataSource); ok {
 			itemBuf := newItemBuf(itemBufReady)
 			itemBufs = append(itemBufs, itemBuf)
 			itemBufInfo[itemBuf] = bufInfoEntry{
@@ -206,7 +206,7 @@ func (rm *respModel) doWatch(rconn *resp.RedisConnection) error {
 				name:   name,
 				format: strings.ToLower(format),
 			}
-			source.Watch(format, buf)
+			src.Watch(format, buf)
 		}
 	}
 
@@ -432,7 +432,7 @@ func (rm *respModel) handleEnd(rconn *resp.RedisConnection, vc *resp.ValueConsum
 	return nil
 }
 
-func (rm *respModel) consumeSource(rconn *resp.RedisConnection, vc *resp.ValueConsumer) (gwr.DataSource, error) {
+func (rm *respModel) consumeSource(rconn *resp.RedisConnection, vc *resp.ValueConsumer) (source.DataSource, error) {
 	nameRV, err := vc.Consume("name")
 	if err != nil {
 		return nil, err

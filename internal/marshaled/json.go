@@ -1,4 +1,4 @@
-package gwr
+package marshaled
 
 import "encoding/json"
 

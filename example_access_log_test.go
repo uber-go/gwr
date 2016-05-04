@@ -12,12 +12,12 @@ import (
 	"text/template"
 
 	"github.com/uber-go/gwr"
-	gwrProto "github.com/uber-go/gwr/protocol"
+	"github.com/uber-go/gwr/source"
 )
 
 type accessLogger struct {
 	handler http.Handler
-	watcher gwr.GenericDataWatcher
+	watcher source.GenericDataWatcher
 }
 
 func logged(handler http.Handler) *accessLogger {
@@ -101,7 +101,7 @@ func (al *accessLogger) GetInit() interface{} {
 	return nil
 }
 
-func (al *accessLogger) Watch(watcher gwr.GenericDataWatcher) {
+func (al *accessLogger) Watch(watcher source.GenericDataWatcher) {
 	al.watcher = watcher
 }
 
@@ -115,9 +115,9 @@ func Example_httpserver_accesslog() {
 		log.Fatal(err)
 	}
 	gwrAddr := ln.Addr()
-	go gwrProto.NewServer(nil).Serve(ln)
+	go gwr.NewServer(nil).Serve(ln)
 	// this would normally be simplified using
-	// gwrProto.ListenAndServe(":4040", nil)
+	// gwr.ListenAndServe(":4040", nil)
 
 	// a handler so we get more than just 404s
 	http.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,4 @@
-package gwr
+package internal
 
 import (
 	"fmt"
