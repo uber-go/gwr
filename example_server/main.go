@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/uber-go/gwr"
+	gwr "github.com/uber-go/gwr"
 )
 
 func main() {

@@ -11,7 +11,7 @@ import (
 	"os"
 	"text/template"
 
-	"github.com/uber-go/gwr"
+	gwr "github.com/uber-go/gwr"
 	"github.com/uber-go/gwr/source"
 )
 
