@@ -130,7 +130,7 @@ func Example_httpserver_accesslog() {
 	loggedHTTPHandler := logged(nil)
 
 	// ...which we then register with gwr
-	gwr.AddMarshaledDataSource(loggedHTTPHandler)
+	gwr.AddGenericDataSource(loggedHTTPHandler)
 
 	// Again note the :0 pattern complicates things more than normal; this is
 	// just the default http server

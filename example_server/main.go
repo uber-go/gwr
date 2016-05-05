@@ -15,8 +15,8 @@ func main() {
 	resLog := &resLogger{handler: http.DefaultServeMux}
 	reqLog := &reqLogger{handler: resLog}
 
-	gwr.AddMarshaledDataSource(reqLog)
-	gwr.AddMarshaledDataSource(resLog)
+	gwr.AddGenericDataSource(reqLog)
+	gwr.AddGenericDataSource(resLog)
 
 	log.Fatal(http.ListenAndServe(":8080", reqLog))
 }
