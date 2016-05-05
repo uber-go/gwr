@@ -310,7 +310,7 @@ func (mds *DataSource) startWatching() {
 	if mds.watching {
 		return
 	}
-	mds.source.Watch(mds)
+	mds.source.SetWatcher(mds)
 	// TODO: tune size
 	mds.itemChan = make(chan interface{}, 100)
 	mds.itemsChan = make(chan []interface{}, 100)

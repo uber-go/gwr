@@ -64,6 +64,6 @@ func (rl *reqLogger) GetInit() interface{} {
 	return nil
 }
 
-func (rl *reqLogger) Watch(watcher source.GenericDataWatcher) {
+func (rl *reqLogger) SetWatcher(watcher source.GenericDataWatcher) {
 	rl.watcher = watcher
 }

@@ -101,7 +101,7 @@ func (al *accessLogger) GetInit() interface{} {
 	return nil
 }
 
-func (al *accessLogger) Watch(watcher source.GenericDataWatcher) {
+func (al *accessLogger) SetWatcher(watcher source.GenericDataWatcher) {
 	al.watcher = watcher
 }
 

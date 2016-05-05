@@ -64,12 +64,12 @@ func (nds *NounDataSource) GetInit() interface{} {
 	return nds.Get()
 }
 
-// Watch implements GenericDataSource by retaining a reference to the passed
-// watcher.  Updates are later sent to the watcher when new data sources are
-// added.  Currently there is no data source removal, but when there is,
-// removal updates will be sent here (TODO change this once we implement
-// source removal).
-func (nds *NounDataSource) Watch(watcher source.GenericDataWatcher) {
+// SetWatcher implements GenericDataSource by retaining a reference to the
+// passed watcher.  Updates are later sent to the watcher when new data sources
+// are added.  Currently there is no data source removal, but when there is,
+// removal updates will be sent here (TODO change this once we implement source
+// removal).
+func (nds *NounDataSource) SetWatcher(watcher source.GenericDataWatcher) {
 	nds.watcher = watcher
 }
 

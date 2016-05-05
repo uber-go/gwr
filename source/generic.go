@@ -35,10 +35,10 @@ type GenericDataSource interface {
 	// returned to the Watch request.
 	GetInit() interface{}
 
-	// Watch sets the current (singular!) watcher.  Implementations must call
-	// the passed watcher until it returns false, or until a new watcher is
-	// passed by a future call of Watch.
-	Watch(GenericDataWatcher)
+	// SetWatcher sets the current (singular!) watcher.  Implementations must
+	// call the passed watcher until it returns false, or until a new watcher
+	// is passed by a future call of SetWatcher.
+	SetWatcher(GenericDataWatcher)
 }
 
 // GenericDataFormat provides both a data marshaling protocol and a framing
