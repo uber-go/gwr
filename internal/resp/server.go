@@ -1,12 +1,8 @@
 package resp
 
 import (
-	"bufio"
 	"fmt"
 	"net"
-	"net/http"
-
-	"github.com/uber-go/gwr/internal/stacked"
 )
 
 // RedisServer serves a RedisHandler on a listening socket.
@@ -45,17 +41,9 @@ func (h RedisServer) Serve(ln net.Listener) error {
 	return nil
 }
 
-// WrapHTTPHandler bundles together a RedisHandler and an http.Handler into a
-// dual protocol server.  The server detects the RESP protocol based on the
-// first byte (if it is one of "-:+$*").
-func WrapHTTPHandler(respHandler RedisHandler, httpHandler http.Handler) *stacked.Server {
-	return &stacked.Server{[]stacked.Detector{
-		respDetector(respHandler),
-		stacked.DefaultHTTPHandler(httpHandler),
-	}}
-}
-
-func isFirstByteRespTag(p []byte) bool {
+// IsFirstByteRespTag returns true if the first byte in the passed slice is a
+// valid RESP tag character (i.e. if it is one of "-:+$*").
+func IsFirstByteRespTag(p []byte) bool {
 	switch p[0] {
 	case '-':
 		fallthrough
@@ -69,16 +57,5 @@ func isFirstByteRespTag(p []byte) bool {
 		return true
 	default:
 		return false
-	}
-}
-
-func respDetector(respHandler RedisHandler) stacked.Detector {
-	hndl := stacked.ConnHandlerFunc(func(conn net.Conn, bufr *bufio.Reader) {
-		NewRedisConnection(conn, bufr).Handle(respHandler)
-	})
-	return stacked.Detector{
-		Needed:  1,
-		Test:    isFirstByteRespTag,
-		Handler: hndl,
 	}
 }

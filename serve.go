@@ -1,12 +1,14 @@
 package gwr
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 
 	"github.com/uber-go/gwr/internal/protocol"
 	"github.com/uber-go/gwr/internal/resp"
-	"github.com/uber-go/gwr/internal/stacked"
 	"github.com/uber-go/gwr/source"
+	"github.com/uber-common/stacked"
 )
 
 func init() {
@@ -33,13 +35,27 @@ func ListenAndServeHTTP(hostPort string, dss *source.DataSources) error {
 
 // NewServer creates an "auto" protocol server that will respond to HTTP or
 // RESP requests.
-func NewServer(dss *source.DataSources) *stacked.Server {
+func NewServer(dss *source.DataSources) stacked.Server {
 	if dss == nil {
 		dss = DefaultDataSources
 	}
 	hh := protocol.NewHTTPRest(dss, "")
 	rh := protocol.NewRedisHandler(dss)
-	return resp.WrapHTTPHandler(rh, hh)
+	return stacked.NewServer(
+		respDetector(rh),
+		stacked.DefaultHTTPHandler(hh),
+	)
+}
+
+func respDetector(respHandler resp.RedisHandler) stacked.Detector {
+	hndl := stacked.HandlerFunc(func(conn net.Conn, bufr *bufio.Reader) {
+		resp.NewRedisConnection(conn, bufr).Handle(respHandler)
+	})
+	return stacked.Detector{
+		Needed:  1,
+		Test:    resp.IsFirstByteRespTag,
+		Handler: hndl,
+	}
 }
 
 // ListenAndServe starts an "auto" protocol server that will respond to HTTP or

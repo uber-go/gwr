@@ -1,2 +1,4 @@
 package: github.com/uber-go/gwr
-import: []
+import:
+- package: github.com/uber-common/stacked
+  version: ^1.0.2

@@ -1,0 +1,6 @@
+hash: 5eb4d09a7dac81b19024e1f148553cda15b8f299a25f0957ea332fbffc6ba904
+updated: 2016-05-05T13:32:44.311213523-07:00
+imports:
+- name: github.com/uber-common/stacked
+  version: f68dcbe9559e6669e6f73c4dcdb8bfdbf13712bb
+devImports: []
