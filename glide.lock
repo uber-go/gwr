@@ -1,6 +1,10 @@
-hash: 5eb4d09a7dac81b19024e1f148553cda15b8f299a25f0957ea332fbffc6ba904
-updated: 2016-05-05T13:32:44.311213523-07:00
+hash: e176ca7c241a4ab6a2622f02f4de9fb027b6e069c9664ceaf3ba9c7173ae38bf
+updated: 2016-05-05T16:04:25.532070281-07:00
 imports:
+- name: github.com/stretchr/testify
+  version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
+  subpackages:
+  - assert
 - name: github.com/uber-common/stacked
   version: f68dcbe9559e6669e6f73c4dcdb8bfdbf13712bb
 devImports: []

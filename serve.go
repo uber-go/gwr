@@ -8,6 +8,7 @@ import (
 	"github.com/uber-go/gwr/internal/protocol"
 	"github.com/uber-go/gwr/internal/resp"
 	"github.com/uber-go/gwr/source"
+
 	"github.com/uber-common/stacked"
 )
 

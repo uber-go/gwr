@@ -3,9 +3,11 @@ package source
 import "fmt"
 
 // DataSourcesObserver is an interface to observe data sources changes.
+//
+// Observation happens after after the source has been added (resp. removed).
 type DataSourcesObserver interface {
 	SourceAdded(ds DataSource)
-	// TODO: add removal
+	SourceRemoved(ds DataSource)
 }
 
 // DataSources is a flat collection of DataSources
@@ -39,9 +41,8 @@ func (dss *DataSources) Get(name string) DataSource {
 	return nil
 }
 
-// AddDataSource adds a DataSource, if none is
-// already defined for the given name.
-func (dss *DataSources) AddDataSource(ds DataSource) error {
+// Add a DataSource, if none is already defined for the given name.
+func (dss *DataSources) Add(ds DataSource) error {
 	name := ds.Name()
 	if _, ok := dss.sources[name]; ok {
 		return fmt.Errorf("data source already defined")
@@ -51,4 +52,17 @@ func (dss *DataSources) AddDataSource(ds DataSource) error {
 		dss.obs.SourceAdded(ds)
 	}
 	return nil
+}
+
+// Remove a DataSource by name, if any exsits.  Returns the source removed, nil
+// if none was defined.
+func (dss *DataSources) Remove(name string) DataSource {
+	ds, ok := dss.sources[name]
+	if ok {
+		delete(dss.sources, name)
+		if dss.obs != nil {
+			dss.obs.SourceRemoved(ds)
+		}
+	}
+	return ds
 }

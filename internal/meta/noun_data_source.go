@@ -16,11 +16,6 @@ var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(`
 {{- end -}}
 `))
 
-type dataSourceUpdate struct {
-	Type string      `json:"type"`
-	Info source.Info `json:"info"`
-}
-
 // NounDataSource provides a data source that describes other data sources.  It
 // is used to implement the "/meta/nouns" data source.
 type NounDataSource struct {
@@ -66,9 +61,7 @@ func (nds *NounDataSource) GetInit() interface{} {
 
 // SetWatcher implements GenericDataSource by retaining a reference to the
 // passed watcher.  Updates are later sent to the watcher when new data sources
-// are added.  Currently there is no data source removal, but when there is,
-// removal updates will be sent here (TODO change this once we implement source
-// removal).
+// are added and removed.
 func (nds *NounDataSource) SetWatcher(watcher source.GenericDataWatcher) {
 	nds.watcher = watcher
 }
@@ -76,6 +69,20 @@ func (nds *NounDataSource) SetWatcher(watcher source.GenericDataWatcher) {
 // SourceAdded is called whenever a source is added to the DataSources.
 func (nds *NounDataSource) SourceAdded(ds source.DataSource) {
 	if nds.watcher != nil {
-		nds.watcher.HandleItem(dataSourceUpdate{"add", source.GetInfo(ds)})
+		nds.watcher.HandleItem(struct {
+			Type string      `json:"type"`
+			Name string      `json:"name"`
+			Info source.Info `json:"info"`
+		}{"add", ds.Name(), source.GetInfo(ds)})
+	}
+}
+
+// SourceRemoved is called whenever a source is removed from the DataSources.
+func (nds *NounDataSource) SourceRemoved(ds source.DataSource) {
+	if nds.watcher != nil {
+		nds.watcher.HandleItem(struct {
+			Type string `json:"type"`
+			Name string `json:"name"`
+		}{"remove", ds.Name()})
 	}
 }

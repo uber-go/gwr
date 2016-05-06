@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/uber-go/gwr/internal"
@@ -225,6 +226,7 @@ func NewDataSource(
 		formatNames = append(formatNames, name)
 		watchers[name] = newMarshaledWatcher(src, format)
 	}
+	sort.Strings(formatNames)
 	return &DataSource{
 		source:      src,
 		formats:     formats,

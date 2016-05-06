@@ -86,8 +86,6 @@ func (rconn *RedisConnection) Consume(handler RedisHandler) error {
 	default:
 		return fmt.Errorf("unknown RESP type %#v", string(c))
 	}
-
-	return nil
 }
 
 func (rconn *RedisConnection) consumeError(handler RedisHandler) error {

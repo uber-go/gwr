@@ -14,18 +14,18 @@ var DefaultDataSources *source.DataSources
 func init() {
 	DefaultDataSources = source.NewDataSources()
 	metaNouns := meta.NewNounDataSource(DefaultDataSources)
-	DefaultDataSources.AddDataSource(marshaled.NewDataSource(metaNouns, nil))
+	DefaultDataSources.Add(marshaled.NewDataSource(metaNouns, nil))
 	DefaultDataSources.SetObserver(metaNouns)
 }
 
 // AddDataSource adds a data source to the default data sources registry.
 func AddDataSource(ds source.DataSource) error {
-	return DefaultDataSources.AddDataSource(ds)
+	return DefaultDataSources.Add(ds)
 }
 
 // AddGenericDataSource adds a generic data source to the default data sources
 // registry.
 func AddGenericDataSource(gds source.GenericDataSource) error {
 	mds := marshaled.NewDataSource(gds, nil)
-	return DefaultDataSources.AddDataSource(mds)
+	return DefaultDataSources.Add(mds)
 }

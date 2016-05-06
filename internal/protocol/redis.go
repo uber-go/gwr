@@ -237,8 +237,6 @@ func (rm *respModel) doWatch(rconn *resp.RedisConnection) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 type multiJSONMessage struct {

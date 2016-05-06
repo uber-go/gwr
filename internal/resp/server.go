@@ -38,7 +38,6 @@ func (h RedisServer) Serve(ln net.Listener) error {
 		}
 		go NewRedisConnection(conn, nil).Handle(h.consumer)
 	}
-	return nil
 }
 
 // IsFirstByteRespTag returns true if the first byte in the passed slice is a
