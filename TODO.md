@@ -1,6 +1,7 @@
-- tests
+- pull a design document out into docs
+- implement /meta/entity
+- more test coverage
 - benchmarks
-- out-of-box multi tenancy maybe
 - reporting support is currently unimplemented
 - redis pub/sub pattern may provide better experience than monitor
 - more example integrations
