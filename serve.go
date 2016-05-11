@@ -32,8 +32,6 @@ func ListenAndServeHTTP(hostPort string, dss *source.DataSources) error {
 	return http.ListenAndServe(hostPort, protocol.NewHTTPRest(dss, ""))
 }
 
-// TODO: support environment variable and/or flag for port(s)
-
 // NewServer creates an "auto" protocol server that will respond to HTTP or
 // RESP requests.
 func NewServer(dss *source.DataSources) stacked.Server {

@@ -108,16 +108,13 @@ func (al *accessLogger) SetWatcher(watcher source.GenericDataWatcher) {
 // TODO: this has become more test than example; maybe just make it a test?
 
 func Example_httpserver_accesslog() {
-	// Uses :0 for no conflict in test, normally this would be something like
-	// :4040.
-	ln, err := net.Listen("tcp", ":0")
-	if err != nil {
+	// Uses :0 for no conflict in test.
+	srv := gwr.NewConfiguredServer(gwr.Config{ListenAddr: ":0"})
+	if err := srv.Start(); err != nil {
 		log.Fatal(err)
 	}
-	gwrAddr := ln.Addr()
-	go gwr.NewServer(nil).Serve(ln)
-	// this would normally be simplified using
-	// gwr.ListenAndServe(":4040", nil)
+	defer srv.Stop()
+	gwrAddr := srv.Addr()
 
 	// a handler so we get more than just 404s
 	http.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +131,7 @@ func Example_httpserver_accesslog() {
 
 	// Again note the :0 pattern complicates things more than normal; this is
 	// just the default http server
-	ln, err = net.Listen("tcp", ":0")
+	ln, err := net.Listen("tcp", ":0")
 	if err != nil {
 		log.Fatal(err)
 	}
