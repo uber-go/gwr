@@ -8,11 +8,9 @@ import (
 )
 
 func main() {
-	srv := gwr.NewConfiguredServer(gwr.Config{Enabled: true})
-	if err := srv.Start(); err != nil {
+	if err := gwr.Configure(nil); err != nil {
 		log.Fatal(err)
 	}
-	defer srv.Stop()
 
 	resLog := &resLogger{handler: http.DefaultServeMux}
 	reqLog := &reqLogger{handler: resLog}

@@ -23,7 +23,7 @@ func TestConfiguredServer(t *testing.T) {
 	assert.Equal(t, srv.ListenAddr(), ":0", "server took ListenAddr config")
 
 	assert.NoError(t, srv.Start(), "no start error")
-	assert.EqualError(t, srv.Start(), "server already started", "double start causes an error")
+	assert.Equal(t, srv.Start(), gwr.ErrAlreadyStarted, "double start error")
 	assert.NotNil(t, srv.Addr(), "non-nil addr after start")
 	assert.NoError(t, srv.Stop(), "no stop error")
 	assert.Nil(t, srv.Addr(), "nil addr after stop")

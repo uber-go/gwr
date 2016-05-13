@@ -109,12 +109,11 @@ func (al *accessLogger) SetWatcher(watcher source.GenericDataWatcher) {
 
 func Example_httpserver_accesslog() {
 	// Uses :0 for no conflict in test.
-	srv := gwr.NewConfiguredServer(gwr.Config{ListenAddr: ":0"})
-	if err := srv.Start(); err != nil {
+	if err := gwr.Configure(&gwr.Config{ListenAddr: ":0"}); err != nil {
 		log.Fatal(err)
 	}
-	defer srv.Stop()
-	gwrAddr := srv.Addr()
+	defer gwr.DefaultServer().Stop()
+	gwrAddr := gwr.DefaultServer().Addr()
 
 	// a handler so we get more than just 404s
 	http.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {

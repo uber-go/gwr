@@ -9,7 +9,15 @@ import (
 	"github.com/uber-common/stacked"
 )
 
-var errAlreadyStarted = errors.New("server already started")
+var (
+	// ErrAlreadyConfigured is returned by gwr.Configure when called more than
+	// once.
+	ErrAlreadyConfigured = errors.New("gwr already configured")
+
+	// ErrAlreadyStarted is returned by ConfiguredServer.Start if the server is
+	// already listening.
+	ErrAlreadyStarted = errors.New("gwr server already started")
+)
 
 // Config defines configuration for GWR.  For now this only defines server
 // configuration; however once we have reporting support we'll add something
@@ -23,6 +31,38 @@ type Config struct {
 	// superceded by the $GWR_LISTEN environment variable, and defaults to
 	// ":4040" if neither is set.
 	ListenAddr string `yaml:"listen"`
+}
+
+var theServer *ConfiguredServer
+
+// Configure sets up the gwr library and starts any resources (like a listening
+// server) if enabled.
+// - if nil config is passed, it's a convenience for &gwr.Config{}
+// - if called more than once, ErrAlreadyConfigured is returned
+// - otherwise any ConfiguredServer.Start error is returned.
+func Configure(config *Config) error {
+	if theServer != nil {
+		return ErrAlreadyConfigured
+	}
+	if config == nil {
+		config = &Config{}
+	}
+	theServer = NewConfiguredServer(*config)
+	return theServer.Start()
+}
+
+// IsEnabled returns true if the gwr library is configured and enabled.
+func IsEnabled() bool {
+	if theServer == nil {
+		return false
+	}
+	return theServer.IsEnabled()
+}
+
+// DefaultServer returns the configured gwr server, or nil if Configure
+// hasn't been called yet.
+func DefaultServer() *ConfiguredServer {
+	return theServer
 }
 
 type serverConfig struct {
@@ -65,6 +105,11 @@ func NewConfiguredServer(cfg Config) *ConfiguredServer {
 	return srv
 }
 
+// IsEnabled return true if the server is enabled.
+func (srv *ConfiguredServer) IsEnabled() bool {
+	return srv.config.enabled
+}
+
 // ListenAddr returns the configured listen address string.
 func (srv *ConfiguredServer) ListenAddr() string {
 	return srv.config.listenAddr
@@ -80,13 +125,16 @@ func (srv *ConfiguredServer) Addr() net.Addr {
 
 // Start starts the server by creating the listener and a server goroutine to
 // accept connections.
+// - if not enabled, noops and returns nil
+// - if already listening, returns ErrAlreadyStarted
+// - otherwise any net.Listen error is returned.
 func (srv *ConfiguredServer) Start() error {
 	if !srv.config.enabled {
 		return nil
 	}
 
 	if srv.ln != nil {
-		return errAlreadyStarted
+		return ErrAlreadyStarted
 	}
 
 	ln, err := net.Listen("tcp", srv.config.listenAddr)
