@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/uber-go/gwr/internal/meta"
 	"github.com/uber-go/gwr/source"
 )
 
@@ -14,6 +15,13 @@ var formatContetTypes = map[string]string{
 	"json": "application/json",
 	"text": "text/plain",
 	"html": "text/html",
+}
+
+func contentTypeFor(formatName string) string {
+	if contetType, ok := formatContetTypes[formatName]; ok {
+		return contetType
+	}
+	return "application/octet"
 }
 
 // HTTPRest implements http.Handler to host a collection of data sources
@@ -45,24 +53,21 @@ func (hndl *HTTPRest) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hndl *HTTPRest) routeSource(w http.ResponseWriter, r *http.Request) error {
-	name := r.URL.Path[len(hndl.prefix):]
-
-	source := hndl.dss.Get(name)
-	if source == nil {
-		w.WriteHeader(http.StatusNotFound)
-		io.WriteString(w, "404 Not Found\nNo such data source\n")
+	var src source.DataSource
+	if path := r.URL.Path[len(hndl.prefix):]; len(path) == 0 || path == "/" {
+		src = hndl.dss.Get(meta.NounsName)
+	} else {
+		src = hndl.dss.Get(path)
+	}
+	if src == nil {
+		http.NotFound(w, r)
 		return nil
 	}
-
-	if err := hndl.routeVerb(source, w, r); err != nil {
-		return err
-	}
-
-	return nil
+	return hndl.routeVerb(src, w, r)
 }
 
 func (hndl *HTTPRest) routeVerb(
-	source source.DataSource,
+	src source.DataSource,
 	w http.ResponseWriter,
 	r *http.Request,
 ) error {
@@ -75,12 +80,12 @@ func (hndl *HTTPRest) routeVerb(
 		if r.Form.Get("watch") != "" {
 			// convenience for http clients that don't easily support custom
 			// method strings
-			return hndl.doWatch(source, w, r)
+			return hndl.doWatch(src, w, r)
 		}
-		return hndl.doGet(source, w, r)
+		return hndl.doGet(src, w, r)
 
 	case "watch":
-		return hndl.doWatch(source, w, r)
+		return hndl.doWatch(src, w, r)
 
 	default:
 		w.Header().Set("Allow", "GET, WATCH")
@@ -91,17 +96,20 @@ func (hndl *HTTPRest) routeVerb(
 }
 
 func (hndl *HTTPRest) doGet(
-	source source.DataSource,
+	src source.DataSource,
 	w http.ResponseWriter,
 	r *http.Request,
 ) error {
-	formatName, err := hndl.determineFormat(source, w, r)
+	formatName, err := hndl.determineFormat(src, w, r)
 	if len(formatName) == 0 || err != nil {
 		return err
 	}
 
 	var buf bytes.Buffer
-	if err := source.Get(formatName, &buf); err != nil {
+	if err := src.Get(formatName, &buf); err == source.ErrNotGetable {
+		http.Error(w, "501 source does not support Get", http.StatusNotImplemented)
+		return nil
+	} else if err != nil {
 		return err
 	}
 
@@ -112,11 +120,8 @@ func (hndl *HTTPRest) doGet(
 	}
 
 	w.WriteHeader(http.StatusOK)
-	if _, err := buf.WriteTo(w); err != nil {
-		return err
-	}
-
-	return nil
+	_, err = buf.WriteTo(w)
+	return err
 }
 
 type flushWriter struct {
@@ -131,11 +136,11 @@ func (fw *flushWriter) Write(p []byte) (int, error) {
 }
 
 func (hndl *HTTPRest) doWatch(
-	source source.DataSource,
+	src source.DataSource,
 	w http.ResponseWriter,
 	r *http.Request,
 ) error {
-	formatName, err := hndl.determineFormat(source, w, r)
+	formatName, err := hndl.determineFormat(src, w, r)
 	if len(formatName) == 0 || err != nil {
 		return err
 	}
@@ -144,15 +149,14 @@ func (hndl *HTTPRest) doWatch(
 	var buf = chanBuf{ready: ready}
 	defer buf.Close()
 
-	if err := source.Watch(formatName, &buf); err != nil {
+	if err := src.Watch(formatName, &buf); err == source.ErrNotWatchable {
+		http.Error(w, "501 source does not support Watch", http.StatusNotImplemented)
+		return nil
+	} else if err != nil {
 		return err
 	}
 
-	if contetType, ok := formatContetTypes[formatName]; ok {
-		w.Header().Set("Content-Type", contetType)
-	} else {
-		w.Header().Set("Content-Type", "application/octet")
-	}
+	w.Header().Set("Content-Type", contentTypeFor(formatName))
 	w.Header().Set("Transfer-Encoding", "chunked")
 
 	w.WriteHeader(http.StatusOK)
@@ -183,13 +187,13 @@ func (hndl *HTTPRest) doWatch(
 }
 
 func (hndl *HTTPRest) determineFormat(
-	source source.DataSource,
+	src source.DataSource,
 	w http.ResponseWriter,
 	r *http.Request,
 ) (string, error) {
 	// TODO: some people like Accepts negotiation
 
-	formats := source.Formats()
+	formats := src.Formats()
 
 	formatName := r.Form.Get("format")
 	if len(formatName) != 0 {

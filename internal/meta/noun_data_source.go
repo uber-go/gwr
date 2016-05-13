@@ -6,14 +6,16 @@ import (
 	"github.com/uber-go/gwr/source"
 )
 
-const metaNounName = "/meta/nouns"
+// NounsName is the name of the meta nouns data source.
+const NounsName = "/meta/nouns"
 
 var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(`
 {{- define "get" -}}
-{{ range $name, $info := . -}}
-- {{ $name }} formats: {{ $info.Formats }}
+Data Sources:
+{{- range $name, $info := . }}
+  {{ $name }} formats: {{ $info.Formats }}
+{{- end }}
 {{ end -}}
-{{- end -}}
 `))
 
 // NounDataSource provides a data source that describes other data sources.  It
@@ -34,7 +36,7 @@ func NewNounDataSource(dss *source.DataSources) *NounDataSource {
 // Name returns the static "/meta/nouns" string; currently using more than one
 // NounDataSource in a single DataSources is unsupported.
 func (nds *NounDataSource) Name() string {
-	return metaNounName
+	return NounsName
 }
 
 // TextTemplate returns a text/template to implement the GenericDataSource with
