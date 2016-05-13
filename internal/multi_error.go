@@ -27,7 +27,7 @@ func (mienErrs MultiErr) AsError() error {
 	case 0:
 		return nil
 	case 1:
-		return mienErrs[1]
+		return mienErrs[0]
 	default:
 		return mienErrs
 	}
