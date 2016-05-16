@@ -63,21 +63,23 @@ func (nds *NounDataSource) SetWatcher(watcher source.GenericDataWatcher) {
 
 // SourceAdded is called whenever a source is added to the DataSources.
 func (nds *NounDataSource) SourceAdded(ds source.DataSource) {
-	if nds.watcher != nil {
-		nds.watcher.HandleItem(struct {
-			Type string      `json:"type"`
-			Name string      `json:"name"`
-			Info source.Info `json:"info"`
-		}{"add", ds.Name(), source.GetInfo(ds)})
+	if !nds.watcher.Active() {
+		return
 	}
+	nds.watcher.HandleItem(struct {
+		Type string      `json:"type"`
+		Name string      `json:"name"`
+		Info source.Info `json:"info"`
+	}{"add", ds.Name(), source.GetInfo(ds)})
 }
 
 // SourceRemoved is called whenever a source is removed from the DataSources.
 func (nds *NounDataSource) SourceRemoved(ds source.DataSource) {
-	if nds.watcher != nil {
-		nds.watcher.HandleItem(struct {
-			Type string `json:"type"`
-			Name string `json:"name"`
-		}{"remove", ds.Name()})
+	if !nds.watcher.Active() {
+		return
 	}
+	nds.watcher.HandleItem(struct {
+		Type string `json:"type"`
+		Name string `json:"name"`
+	}{"remove", ds.Name()})
 }

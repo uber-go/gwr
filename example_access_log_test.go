@@ -45,8 +45,7 @@ var accessLogTextTemplate = template.Must(template.New("req_logger_text").Parse(
 `))
 
 func (al *accessLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	watcher := al.watcher
-	if watcher == nil {
+	if !al.watcher.Active() {
 		al.handler.ServeHTTP(w, r)
 		return
 	}
@@ -69,16 +68,14 @@ func (al *accessLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// overhead, like marshalling, should be deferred by the gwr library,
 	// watcher.HandleItem is supposed to be fast enough to not need a channel
 	// indirection within each source.
-	if !watcher.HandleItem(accessEntry{
+	al.watcher.HandleItem(accessEntry{
 		Method:      r.Method,
 		Path:        r.URL.Path,
 		Query:       r.URL.RawQuery,
 		Code:        rec.Code,
 		Bytes:       bytes,
 		ContentType: rec.HeaderMap.Get("Content-Type"),
-	}) {
-		al.watcher = nil
-	}
+	})
 }
 
 func (al *accessLogger) Name() string {

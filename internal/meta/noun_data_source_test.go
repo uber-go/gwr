@@ -27,9 +27,6 @@ func (dds *dummyDataSource) TextTemplate() *template.Template {
 	return dds.tmpl
 }
 
-func (dds *dummyDataSource) SetWatcher(watcher source.GenericDataWatcher) {
-}
-
 func setup() *source.DataSources {
 	dss := source.NewDataSources()
 	nds := meta.NewNounDataSource(dss)

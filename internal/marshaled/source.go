@@ -5,11 +5,10 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"sync/atomic"
 
 	"github.com/uber-go/gwr/source"
 )
-
-// TODO: punts on any locking concerns
 
 // NOTE: This approach is perhaps overfit to the json module's marshalling
 // mindset.  A better interface (for performance) would work by passing a
@@ -31,11 +30,12 @@ type DataSource struct {
 	getSource   source.GetableDataSource
 	watchSource source.WatchableDataSource
 	watiSource  source.WatchInitableDataSource
+	actiSource  source.ActivateWatchableDataSource
 
 	formats     map[string]source.GenericDataFormat
 	formatNames []string
 	watchers    map[string]*marshaledWatcher
-	watching    bool
+	active      uint32
 	itemChan    chan interface{}
 	itemsChan   chan []interface{}
 }
@@ -71,12 +71,27 @@ func NewDataSource(
 	ds.getSource, _ = src.(source.GetableDataSource)
 	ds.watchSource, _ = src.(source.WatchableDataSource)
 	ds.watiSource, _ = src.(source.WatchInitableDataSource)
+	ds.actiSource, _ = src.(source.ActivateWatchableDataSource)
 	for name, format := range formats {
 		ds.formatNames = append(ds.formatNames, name)
 		ds.watchers[name] = newMarshaledWatcher(ds, format)
 	}
 	sort.Strings(ds.formatNames)
+
+	if ds.watchSource != nil {
+		// TODO: tune size
+		ds.itemChan = make(chan interface{}, 100)
+		ds.itemsChan = make(chan []interface{}, 100)
+		ds.watchSource.SetWatcher(ds)
+	}
+
 	return ds
+}
+
+// Active returns true if there are any active watchers, false otherwise.  If
+// Active returns false, so will any calls to HandleItem and HandleItems.
+func (mds *DataSource) Active() bool {
+	return atomic.LoadUint32(&mds.active) != 0
 }
 
 // Name passes through the GenericDataSource.Name()
@@ -150,33 +165,28 @@ func (mds *DataSource) WatchItems(formatName string, iw source.ItemWatcher) erro
 }
 
 func (mds *DataSource) startWatching() error {
-	// TODO: we probably need synchronized access to watching and co
 	// TODO: we could optimize the only-one-format-being-watched case
-	if mds.watching {
+	if !atomic.CompareAndSwapUint32(&mds.active, 0, 1) {
 		return nil
 	}
-	mds.watchSource.SetWatcher(mds)
-	// TODO: tune size
-	mds.itemChan = make(chan interface{}, 100)
-	mds.itemsChan = make(chan []interface{}, 100)
-	mds.watching = true
 	go mds.processItemChan()
+	if mds.actiSource != nil {
+		mds.actiSource.Activate()
+	}
 	return nil
 }
 
 func (mds *DataSource) stopWatching() {
-	// TODO: we probably need synchronized access to watching and co
-	if !mds.watching {
+	if !atomic.CompareAndSwapUint32(&mds.active, 1, 0) {
 		return
 	}
-	mds.watching = false
 	for _, watcher := range mds.watchers {
 		watcher.Close()
 	}
 }
 
 func (mds *DataSource) processItemChan() {
-	for mds.watching {
+	for mds.Active() {
 		any := false
 
 		select {
@@ -206,7 +216,7 @@ func (mds *DataSource) processItemChan() {
 // HandleItem implements GenericDataWatcher.HandleItem by passing the item to
 // all current marshaledWatchers.
 func (mds *DataSource) HandleItem(item interface{}) bool {
-	if !mds.watching {
+	if !mds.Active() {
 		return false
 	}
 	select {
@@ -221,7 +231,7 @@ func (mds *DataSource) HandleItem(item interface{}) bool {
 // HandleItems implements GenericDataWatcher.HandleItems by passing the batch
 // to all current marshaledWatchers.
 func (mds *DataSource) HandleItems(items []interface{}) bool {
-	if !mds.watching {
+	if !mds.Active() {
 		return false
 	}
 	select {

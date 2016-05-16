@@ -3,8 +3,11 @@ package source
 import "text/template"
 
 // GenericDataWatcher is the interface for the watcher passed to
-// GenericDataSource.Watch. Both single-item and batch methods are provided.
+// GenericDataSource.SetWatcher.  Both single-item and batch methods are
+// provided.
 type GenericDataWatcher interface {
+	Active() bool
+
 	// HandleItem is called with a single item of generic unmarshaled data.
 	HandleItem(item interface{}) bool
 
@@ -38,10 +41,30 @@ type GetableDataSource interface {
 type WatchableDataSource interface {
 	GenericDataSource
 
-	// SetWatcher sets the current (singular!) watcher.  Implementations must
-	// call the passed watcher until it returns false, or until a new watcher
-	// is passed by a future call of SetWatcher.
-	SetWatcher(GenericDataWatcher)
+	// SetWatcher sets the watcher.
+	//
+	// Implementations should retain a reference to the last passed watcher,
+	// and need not retain multiple; in the usual case this method will only be
+	// called once per data source lifecycle.
+	//
+	// Implementations should pass items to watcher.HandleItem and/or
+	// watcher.HandleItems methods.
+	//
+	// Implementations may use watcher.Active to avoid building items which
+	// would just be thrown out by a call to HandleItem(s).
+	SetWatcher(watcher GenericDataWatcher)
+}
+
+// ActivateWatchableDataSource is an optional interface that
+// WatchableDataSources may implement to get notified about source activation.
+type ActivateWatchableDataSource interface {
+	WatchableDataSource
+
+	// Activate gets called when the GenericDataWatcher transitions from
+	// inactive to active.  It may be used by implementations to start or
+	// trigger any resources needed to generate items to pass to the set
+	// GenericDataWatcher.
+	Activate()
 }
 
 // WatchInitableDataSource is the interface that a WatchableDataSource should
