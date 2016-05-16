@@ -15,29 +15,16 @@ import (
 )
 
 type dummyDataSource struct {
-	name  string
-	attrs map[string]interface{}
-	tmpl  *template.Template
+	name string
+	tmpl *template.Template
 }
 
 func (dds *dummyDataSource) Name() string {
 	return dds.name
 }
 
-func (dds *dummyDataSource) Attrs() map[string]interface{} {
-	return dds.attrs
-}
-
 func (dds *dummyDataSource) TextTemplate() *template.Template {
 	return dds.tmpl
-}
-
-func (dds *dummyDataSource) Get() interface{} {
-	return nil
-}
-
-func (dds *dummyDataSource) GetInit() interface{} {
-	return nil
 }
 
 func (dds *dummyDataSource) SetWatcher(watcher source.GenericDataWatcher) {
@@ -73,22 +60,20 @@ func TestNounDataSource_Watch(t *testing.T) {
 
 	// add a data source, observe it
 	assert.NoError(t, dss.Add(marshaled.NewDataSource(&dummyDataSource{
-		name:  "/foo",
-		attrs: map[string]interface{}{"aKey": "aVal"},
-		tmpl:  nil,
+		name: "/foo",
+		tmpl: nil,
 	}, nil)), "no add error expected")
 	assertJSONScanLine(t, sc,
-		`{"name":"/foo","type":"add","info":{"formats":["json"],"attrs":{"aKey":"aVal"}}}`,
+		`{"name":"/foo","type":"add","info":{"formats":["json"],"attrs":null}}`,
 		"should get an add event for /foo")
 
 	// add another data source, observe it
 	assert.NoError(t, dss.Add(marshaled.NewDataSource(&dummyDataSource{
-		name:  "/bar",
-		attrs: map[string]interface{}{"bKey": 123},
-		tmpl:  template.Must(template.New("bar_tmpl").Parse("")),
+		name: "/bar",
+		tmpl: template.Must(template.New("bar_tmpl").Parse("")),
 	}, nil)), "no add error expected")
 	assertJSONScanLine(t, sc,
-		`{"name":"/bar","type":"add","info":{"formats":["json","text"],"attrs":{"bKey":123}}}`,
+		`{"name":"/bar","type":"add","info":{"formats":["json","text"],"attrs":null}}`,
 		"should get an add event for /bar")
 
 	// remove the /foo data source, observe it

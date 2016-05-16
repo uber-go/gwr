@@ -89,18 +89,6 @@ func (al *accessLogger) TextTemplate() *template.Template {
 	return accessLogTextTemplate
 }
 
-func (al *accessLogger) Attrs() map[string]interface{} {
-	return nil
-}
-
-func (al *accessLogger) Get() interface{} {
-	return nil
-}
-
-func (al *accessLogger) GetInit() interface{} {
-	return nil
-}
-
 func (al *accessLogger) SetWatcher(watcher source.GenericDataWatcher) {
 	al.watcher = watcher
 }

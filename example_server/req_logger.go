@@ -52,18 +52,6 @@ func (rl *reqLogger) TextTemplate() *template.Template {
 	return reqLogTextTemplate
 }
 
-func (rl *reqLogger) Attrs() map[string]interface{} {
-	return nil
-}
-
-func (rl *reqLogger) Get() interface{} {
-	return nil
-}
-
-func (rl *reqLogger) GetInit() interface{} {
-	return nil
-}
-
 func (rl *reqLogger) SetWatcher(watcher source.GenericDataWatcher) {
 	rl.watcher = watcher
 }

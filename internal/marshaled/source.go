@@ -27,7 +27,13 @@ import (
 // - ItemDataSource so that higher level protocols may add their own framing
 // - GenericDataWatcher inwardly to the wrapped GenericDataSource
 type DataSource struct {
+	// TODO: better to have alternate implementations for each combination
+	// rather than one with these nil checks
 	source      source.GenericDataSource
+	getSource   source.GetableDataSource
+	watchSource source.WatchableDataSource
+	watiSource  source.WatchInitableDataSource
+
 	formats     map[string]source.GenericDataFormat
 	formatNames []string
 	watchers    map[string]*marshaledWatcher
@@ -43,14 +49,14 @@ type DataSource struct {
 // long as there is one valid io.Writer for a given format.  Once the last
 // marshaledWatcher goes idle, the underlying GenericDataSource watch is ended.
 type marshaledWatcher struct {
-	source   source.GenericDataSource
+	source   *DataSource
 	format   source.GenericDataFormat
 	dfw      defaultFrameWatcher
 	watchers []source.ItemWatcher
 }
 
-func newMarshaledWatcher(source source.GenericDataSource, format source.GenericDataFormat) *marshaledWatcher {
-	mw := &marshaledWatcher{source: source, format: format}
+func newMarshaledWatcher(src *DataSource, format source.GenericDataFormat) *marshaledWatcher {
+	mw := &marshaledWatcher{source: src, format: format}
 	mw.dfw.format = format
 	return mw
 }
@@ -72,9 +78,13 @@ func (mw *marshaledWatcher) Close() error {
 }
 
 func (mw *marshaledWatcher) init(w io.Writer) error {
-	if err := mw.dfw.init(mw.source.GetInit(), w); err != nil {
-		return err
+	if mw.source.watiSource != nil {
+		initData := mw.source.watiSource.WatchInit()
+		if err := mw.dfw.writeInitData(initData, w); err != nil {
+			return err
+		}
 	}
+	mw.dfw.writers = append(mw.dfw.writers, w)
 	if len(mw.dfw.writers) == 1 {
 		mw.watchers = append(mw.watchers, &mw.dfw)
 	}
@@ -82,8 +92,9 @@ func (mw *marshaledWatcher) init(w io.Writer) error {
 }
 
 func (mw *marshaledWatcher) initItems(iw source.ItemWatcher) error {
-	if data := mw.source.GetInit(); data != nil {
-		if buf, err := mw.format.MarshalInit(data); err != nil {
+	if mw.source.watiSource != nil {
+		initData := mw.source.watiSource.WatchInit()
+		if buf, err := mw.format.MarshalInit(initData); err != nil {
 			log.Printf("initial marshaling error %v", err)
 			return err
 		} else if err := iw.HandleItem(buf); err != nil {
@@ -220,19 +231,20 @@ func NewDataSource(
 	// TODO: source should be able to declare some formats in addition to any
 	// integratgor
 
-	var formatNames []string
-	watchers := make(map[string]*marshaledWatcher, len(formats))
+	ds := &DataSource{
+		source:   src,
+		formats:  formats,
+		watchers: make(map[string]*marshaledWatcher, len(formats)),
+	}
+	ds.getSource, _ = src.(source.GetableDataSource)
+	ds.watchSource, _ = src.(source.WatchableDataSource)
+	ds.watiSource, _ = src.(source.WatchInitableDataSource)
 	for name, format := range formats {
-		formatNames = append(formatNames, name)
-		watchers[name] = newMarshaledWatcher(src, format)
+		ds.formatNames = append(ds.formatNames, name)
+		ds.watchers[name] = newMarshaledWatcher(ds, format)
 	}
-	sort.Strings(formatNames)
-	return &DataSource{
-		source:      src,
-		formats:     formats,
-		formatNames: formatNames,
-		watchers:    watchers,
-	}
+	sort.Strings(ds.formatNames)
+	return ds
 }
 
 // Name passes through the GenericDataSource.Name()
@@ -248,19 +260,20 @@ func (mds *DataSource) Formats() []string {
 // Attrs returns arbitrary description information about the data source.
 func (mds *DataSource) Attrs() map[string]interface{} {
 	// TODO: support per-format Attrs?
-	return mds.source.Attrs()
+	// TODO: any support for per-source Attrs?
+	return nil
 }
 
 // Get marshals data source's Get data to the writer
 func (mds *DataSource) Get(formatName string, w io.Writer) error {
+	if mds.getSource == nil {
+		return source.ErrNotGetable
+	}
 	format, ok := mds.formats[strings.ToLower(formatName)]
 	if !ok {
 		return source.ErrUnsupportedFormat
 	}
-	data := mds.source.Get()
-	if data == nil {
-		return source.ErrNotGetable
-	}
+	data := mds.getSource.Get()
 	buf, err := format.MarshalGet(data)
 	if err != nil {
 		log.Printf("get marshaling error %v", err)
@@ -274,50 +287,49 @@ func (mds *DataSource) Get(formatName string, w io.Writer) error {
 // retains a reference to the writer so that any future agnostic data source
 // Watch(emit)'ed data gets marshaled to it as well
 func (mds *DataSource) Watch(formatName string, w io.Writer) error {
+	if mds.watchSource == nil {
+		return source.ErrNotWatchable
+	}
 	watcher, ok := mds.watchers[strings.ToLower(formatName)]
 	if !ok {
 		return source.ErrUnsupportedFormat
 	}
-
 	if err := watcher.init(w); err != nil {
 		return err
 	}
-
-	mds.startWatching()
-
-	return nil
+	return mds.startWatching()
 }
 
 // WatchItems marshals any data source GetInit data as a single item to the
 // ItemWatcher's HandleItem method.  The watcher is then retained and future
 // items are marshaled to its HandleItem method.
 func (mds *DataSource) WatchItems(formatName string, iw source.ItemWatcher) error {
+	if mds.watchSource == nil {
+		return source.ErrNotWatchable
+	}
 	watcher, ok := mds.watchers[strings.ToLower(formatName)]
 	if !ok {
 		return source.ErrUnsupportedFormat
 	}
-
 	if err := watcher.initItems(iw); err != nil {
 		return err
 	}
-
-	mds.startWatching()
-
-	return nil
+	return mds.startWatching()
 }
 
-func (mds *DataSource) startWatching() {
+func (mds *DataSource) startWatching() error {
 	// TODO: we probably need synchronized access to watching and co
 	// TODO: we could optimize the only-one-format-being-watched case
 	if mds.watching {
-		return
+		return nil
 	}
-	mds.source.SetWatcher(mds)
+	mds.watchSource.SetWatcher(mds)
 	// TODO: tune size
 	mds.itemChan = make(chan interface{}, 100)
 	mds.itemsChan = make(chan []interface{}, 100)
 	mds.watching = true
 	go mds.processItemChan()
+	return nil
 }
 
 func (mds *DataSource) stopWatching() {
@@ -396,23 +408,20 @@ type defaultFrameWatcher struct {
 	writers []io.Writer
 }
 
-func (dfw *defaultFrameWatcher) init(data interface{}, w io.Writer) error {
-	if data != nil {
-		buf, err := dfw.format.MarshalInit(data)
-		if err != nil {
-			log.Printf("initial marshaling error %v", err)
-			return err
-		}
-		buf, err = dfw.format.FrameItem(buf)
-		if err != nil {
-			log.Printf("initial framing error %v", err)
-			return err
-		}
-		if _, err := w.Write(buf); err != nil {
-			return err
-		}
+func (dfw *defaultFrameWatcher) writeInitData(data interface{}, w io.Writer) error {
+	buf, err := dfw.format.MarshalInit(data)
+	if err != nil {
+		log.Printf("initial marshaling error %v", err)
+		return err
 	}
-	dfw.writers = append(dfw.writers, w)
+	buf, err = dfw.format.FrameItem(buf)
+	if err != nil {
+		log.Printf("initial framing error %v", err)
+		return err
+	}
+	if _, err := w.Write(buf); err != nil {
+		return err
+	}
 	return nil
 }
 

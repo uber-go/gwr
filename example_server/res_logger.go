@@ -60,18 +60,6 @@ func (rl *resLogger) TextTemplate() *template.Template {
 	return resLogTextTemplate
 }
 
-func (rl *resLogger) Attrs() map[string]interface{} {
-	return nil
-}
-
-func (rl *resLogger) Get() interface{} {
-	return nil
-}
-
-func (rl *resLogger) GetInit() interface{} {
-	return nil
-}
-
 func (rl *resLogger) SetWatcher(watcher source.GenericDataWatcher) {
 	rl.watcher = watcher
 }

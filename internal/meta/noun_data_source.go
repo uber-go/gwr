@@ -37,11 +37,6 @@ func (nds *NounDataSource) Name() string {
 	return metaNounName
 }
 
-// Attrs returns a nil descriptor to implement the GenericDataSource.
-func (nds *NounDataSource) Attrs() map[string]interface{} {
-	return nil
-}
-
 // TextTemplate returns a text/template to implement the GenericDataSource with
 // a "text" format option.
 func (nds *NounDataSource) TextTemplate() *template.Template {
@@ -53,9 +48,9 @@ func (nds *NounDataSource) Get() interface{} {
 	return nds.sources.Info()
 }
 
-// GetInit returns identical data to Get so that all Watch streams start out
+// WatchInit returns identical data to Get so that all Watch streams start out
 // with a snapshot of the world.
-func (nds *NounDataSource) GetInit() interface{} {
+func (nds *NounDataSource) WatchInit() interface{} {
 	return nds.Get()
 }
 
