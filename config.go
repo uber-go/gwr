@@ -51,12 +51,12 @@ func Configure(config *Config) error {
 	return theServer.Start()
 }
 
-// IsEnabled returns true if the gwr library is configured and enabled.
-func IsEnabled() bool {
+// Enabled returns true if the gwr library is configured and enabled.
+func Enabled() bool {
 	if theServer == nil {
 		return false
 	}
-	return theServer.IsEnabled()
+	return theServer.Enabled()
 }
 
 // DefaultServer returns the configured gwr server, or nil if Configure
@@ -105,8 +105,8 @@ func NewConfiguredServer(cfg Config) *ConfiguredServer {
 	return srv
 }
 
-// IsEnabled return true if the server is enabled.
-func (srv *ConfiguredServer) IsEnabled() bool {
+// Enabled return true if the server is enabled.
+func (srv *ConfiguredServer) Enabled() bool {
 	return srv.config.enabled
 }
 
