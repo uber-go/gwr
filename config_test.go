@@ -12,7 +12,7 @@ import (
 func TestConfiguredServer(t *testing.T) {
 	os.Unsetenv("GWR_LISTEN")
 	srv := gwr.NewConfiguredServer(gwr.Config{})
-	assert.Equal(t, srv.ListenAddr(), ":4040", "default address works")
+	assert.Equal(t, srv.ListenAddr(), "", "no default listen address")
 
 	os.Setenv("GWR_LISTEN", ":1234")
 	srv = gwr.NewConfiguredServer(gwr.Config{})

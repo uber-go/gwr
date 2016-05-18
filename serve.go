@@ -2,6 +2,7 @@ package gwr
 
 import (
 	"bufio"
+	"errors"
 	"net"
 	"net/http"
 
@@ -12,8 +13,39 @@ import (
 	"github.com/uber-common/stacked"
 )
 
+var errNoServer = errors.New("no server configured")
+
+type indirectServer struct {
+	cs **ConfiguredServer
+}
+
+func (is indirectServer) Addr() net.Addr {
+	srv := *(is.cs)
+	if srv == nil {
+		return nil
+	}
+	return srv.Addr()
+}
+
+func (is indirectServer) StartOn(laddr string) error {
+	srv := *(is.cs)
+	if srv == nil {
+		return errNoServer
+	}
+	return srv.StartOn(laddr)
+}
+
+func (is indirectServer) Stop() error {
+	srv := *(is.cs)
+	if srv == nil {
+		return errNoServer
+	}
+	return srv.Stop()
+}
+
 func init() {
-	http.Handle("/gwr/", protocol.NewHTTPRest(DefaultDataSources, "/gwr"))
+	hh := protocol.NewHTTPRest(DefaultDataSources, "/gwr", indirectServer{&theServer})
+	http.Handle("/gwr/", hh)
 }
 
 // ListenAndServeResp starts a resp protocol gwr server.
@@ -29,7 +61,8 @@ func ListenAndServeHTTP(hostPort string, dss *source.DataSources) error {
 	if dss == nil {
 		dss = DefaultDataSources
 	}
-	return http.ListenAndServe(hostPort, protocol.NewHTTPRest(dss, ""))
+	hh := protocol.NewHTTPRest(dss, "", indirectServer{&theServer})
+	return http.ListenAndServe(hostPort, hh)
 }
 
 // NewServer creates an "auto" protocol server that will respond to HTTP or
@@ -38,7 +71,7 @@ func NewServer(dss *source.DataSources) stacked.Server {
 	if dss == nil {
 		dss = DefaultDataSources
 	}
-	hh := protocol.NewHTTPRest(dss, "")
+	hh := protocol.NewHTTPRest(dss, "", indirectServer{&theServer})
 	rh := protocol.NewRedisHandler(dss)
 	return stacked.NewServer(
 		respDetector(rh),

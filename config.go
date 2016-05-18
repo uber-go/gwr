@@ -28,8 +28,11 @@ type Config struct {
 	Enabled *bool `yaml:"enabled"`
 
 	// ListenAddr controls what address ConfiguredServer will listen on.  It is
-	// superceded by the $GWR_LISTEN environment variable, and defaults to
-	// ":4040" if neither is set.
+	// superceded by the $GWR_LISTEN environment variable.
+	//
+	// If no listen address is set, then GWR does not start its own listening
+	// server; however GWR can still be accessed under "/gwr/..." from any
+	// default http servers.
 	ListenAddr string `yaml:"listen"`
 }
 
@@ -72,7 +75,7 @@ type serverConfig struct {
 
 var defaultServerConfig = serverConfig{
 	enabled:    true,
-	listenAddr: ":4040",
+	listenAddr: "",
 }
 
 // ConfiguredServer manages the lifecycle of a configured GWR server, as
@@ -125,11 +128,16 @@ func (srv *ConfiguredServer) Addr() net.Addr {
 
 // Start starts the server by creating the listener and a server goroutine to
 // accept connections.
-// - if not enabled, noops and returns nil
+// - if not enabled, or if no listen address is configured, noops and returns
+//   nil
 // - if already listening, returns ErrAlreadyStarted
 // - otherwise any net.Listen error is returned.
 func (srv *ConfiguredServer) Start() error {
 	if !srv.config.enabled {
+		return nil
+	}
+
+	if srv.config.listenAddr == "" {
 		return nil
 	}
 
@@ -153,6 +161,27 @@ func (srv *ConfiguredServer) Start() error {
 		}
 	}(srv.ln, srv.done)
 	return nil
+}
+
+// StartOn starts the server on a given listening address.  If the start
+// succeeds, it also updates the configured listening address for later
+// reference.  It has all the same error cases as ConfiguredServer.Start.
+func (srv *ConfiguredServer) StartOn(laddr string) error {
+	if !srv.config.enabled {
+		return nil
+	}
+
+	if srv.ln != nil {
+		return ErrAlreadyStarted
+	}
+
+	oldLaddr := srv.config.listenAddr
+	srv.config.listenAddr = laddr
+	err := srv.Start()
+	if err != nil {
+		srv.config.listenAddr = oldLaddr
+	}
+	return err
 }
 
 // Stop closes the current listener and shuts down the server goroutine started
