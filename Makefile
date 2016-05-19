@@ -1,12 +1,15 @@
+PACKAGES=$(shell glide novendor)
+
 .PHONY: lint
 
 lint:
-	go vet $$(glide novendor)
+	go vet $(PACKAGES)
 
 .PHONY: test
 
 test: check-license lint
-	go test $$(glide novendor)
+	find . -type f -name '*.go' -not -name '*_string.go' | xargs golint
+	go test $(PACKAGES)
 
 vendor: glide.lock
 	glide install
