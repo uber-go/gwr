@@ -1,6 +1,8 @@
 package source
 
-import "fmt"
+import "errors"
+
+var ErrSourceAlreadyDefined = errors.New("data source already defined")
 
 // DataSourcesObserver is an interface to observe data sources changes.
 //
@@ -45,7 +47,7 @@ func (dss *DataSources) Get(name string) DataSource {
 func (dss *DataSources) Add(ds DataSource) error {
 	name := ds.Name()
 	if _, ok := dss.sources[name]; ok {
-		return fmt.Errorf("data source already defined")
+		return ErrSourceAlreadyDefined
 	}
 	dss.sources[name] = ds
 	if dss.obs != nil {

@@ -18,13 +18,16 @@ func init() {
 	DefaultDataSources.SetObserver(metaNouns)
 }
 
-// AddDataSource adds a data source to the default data sources registry.
+// AddDataSource adds a data source to the default data sources registry.  It
+// returns an error if there's already a data source defined with the same
+// name.
 func AddDataSource(ds source.DataSource) error {
 	return DefaultDataSources.Add(ds)
 }
 
 // AddGenericDataSource adds a generic data source to the default data sources
-// registry.
+// registry.  It returns an error if there's already a data source defined with
+// the same name.
 func AddGenericDataSource(gds source.GenericDataSource) error {
 	mds := marshaled.NewDataSource(gds, nil)
 	return DefaultDataSources.Add(mds)

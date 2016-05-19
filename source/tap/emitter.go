@@ -15,9 +15,20 @@ import (
 	"github.com/uber-go/gwr/source"
 )
 
-var defaultTemplate = template.Must(template.New("tap_text").Parse(`
+type stringer interface {
+	String() string
+}
+
+var defaultTemplate = template.Must(template.New("tap_text").Funcs(template.FuncMap{
+	"stringIt": func(val interface{}) string {
+		if str, ok := val.(stringer); ok {
+			return str.String()
+		}
+		return fmt.Sprintf("%#v", val)
+	},
+}).Parse(`
 {{- define "item" -}}
-{{ . }}
+{{ stringIt . }}
 {{- end -}}
 `))
 
