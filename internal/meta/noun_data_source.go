@@ -21,6 +21,7 @@
 package meta
 
 import (
+	"strings"
 	"text/template"
 
 	"github.com/uber-go/gwr/source"
@@ -29,14 +30,10 @@ import (
 // NounsName is the name of the meta nouns data source.
 const NounsName = "/meta/nouns"
 
-var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(`
-{{- define "get" -}}
-Data Sources:
-{{- range $name, $info := . }}
-  {{ $name }} formats: {{ $info.Formats }}
-{{- end }}
-{{ end -}}
-`))
+var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(strings.TrimSpace(`
+{{ define "get" }}Data Sources:{{ range $name, $info := . }}{{ $name }} formats: {{ $info.Formats }}
+{{ end }}{{ end }}
+`)))
 
 // NounDataSource provides a data source that describes other data sources.  It
 // is used to implement the "/meta/nouns" data source.
