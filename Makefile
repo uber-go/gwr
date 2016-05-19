@@ -5,7 +5,7 @@ lint:
 
 .PHONY: test
 
-test: lint
+test: check-license lint
 	go test $$(glide novendor)
 
 vendor: glide.lock
