@@ -16,4 +16,5 @@
 - benchmarks
 - more example integrations
   - metrics
+  - runtime/trace
   - app logging

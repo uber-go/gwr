@@ -1,6 +1,15 @@
 # GWR: Get / Watch / Report -ing of operational data
 
-NOTE: GWR is currently in experimental prototyping phase, buyer beware.
+GWR provides on demand access to operational data:
+- define your data sources
+- poll and/or watch them over HTTP or Redis Protocol
+
+## Status: beta
+
+GWR is currently in beta devolopment:
+- basic support for get and watch are done, with a couple simple sources; these
+  interfaces are not likely to change before 1.0
+- reporting is not yet started, and is the major blocker before 1.0
 
 # Using
 
