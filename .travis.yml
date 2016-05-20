@@ -1,0 +1,13 @@
+language: go
+go:
+  - 1.5
+  - 1.6
+  - tip
+env:
+  global:
+    - GO15VENDOREXPERIMENT=1
+install: make install_ci
+script: make test
+cache:
+  directories:
+    - vendor
