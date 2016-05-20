@@ -14,6 +14,13 @@ test: check-license lint
 vendor: glide.lock
 	glide install
 
+.PHONY: install_ci
+install_ci:
+	glide --version || go get -u -f github.com/Masterminds/glide
+	make vendor
+	glide install
+	go install ./vendor/github.com/golang/lint/golint
+
 vendor/github.com/uber/uber-licence: vendor
 	[ -d vendor/github.com/uber/uber-licence ] || glide install
 
