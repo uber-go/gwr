@@ -6,3 +6,4 @@ import:
   subpackages:
   - assert
 - package: github.com/uber/uber-licence
+- package: github.com/golang/lint
