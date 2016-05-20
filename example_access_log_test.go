@@ -59,9 +59,7 @@ type accessEntry struct {
 }
 
 var accessLogTextTemplate = template.Must(template.New("req_logger_text").Parse(`
-{{- define "item" -}}
-{{ .Method }} {{ .Path }}{{ if .Query }}?{{ .Query }}{{ end }} {{ .Code }} {{ .Bytes }} {{ .ContentType }}
-{{- end -}}
+{{ define "item" }}{{ .Method }} {{ .Path }}{{ if .Query }}?{{ .Query }}{{ end }} {{ .Code }} {{ .Bytes }} {{ .ContentType }}{{ end }}
 `))
 
 func (al *accessLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {

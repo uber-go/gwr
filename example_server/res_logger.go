@@ -40,9 +40,7 @@ type resInfo struct {
 }
 
 var resLogTextTemplate = template.Must(template.New("res_logger_text").Parse(`
-{{- define "item" -}}
-{{ .Code }} {{ .Bytes }} {{ .ContentType }}
-{{- end -}}
+{{ define "item" }}{{ .Code }} {{ .Bytes }} {{ .ContentType }}{{ end }}
 `))
 
 func (rl *resLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
