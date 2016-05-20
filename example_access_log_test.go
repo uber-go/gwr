@@ -120,6 +120,7 @@ func Example_httpserver_accesslog() {
 
 	// a handler so we get more than just 404s
 	http.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		if _, err := io.WriteString(w, "Ok ;-)\n"); err != nil {
 			panic(err.Error())
 		}
