@@ -66,7 +66,7 @@ func NewDataSource(
 	src source.GenericDataSource,
 	formats map[string]source.GenericDataFormat,
 ) *DataSource {
-	if len(formats) == 0 {
+	if formats == nil {
 		formats = make(map[string]source.GenericDataFormat)
 	}
 
