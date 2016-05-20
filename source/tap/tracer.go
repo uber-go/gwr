@@ -23,7 +23,6 @@ package tap
 import (
 	"fmt"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/uber-go/gwr"
@@ -79,10 +78,11 @@ func (src *Tracer) Name() string {
 	return src.name
 }
 
-// TextTemplate returns a human friendly template for rendering scope data.
-func (src *Tracer) TextTemplate() *template.Template {
-	// TODO: provide a better template
-	return defaultTemplate
+// Formats returns tracer-specific formats.
+func (src *Tracer) Formats() map[string]source.GenericDataFormat {
+	return map[string]source.GenericDataFormat{
+		"text": defaultTextFormat,
+	}
 }
 
 // SetWatcher sets the current watcher.

@@ -32,6 +32,7 @@ import (
 	"text/template"
 
 	"github.com/uber-go/gwr"
+	"github.com/uber-go/gwr/internal"
 	"github.com/uber-go/gwr/source"
 )
 
@@ -39,18 +40,12 @@ type stringer interface {
 	String() string
 }
 
-var defaultTemplate = template.Must(template.New("tap_text").Funcs(template.FuncMap{
-	"stringIt": func(val interface{}) string {
-		if str, ok := val.(stringer); ok {
-			return str.String()
-		}
-		return fmt.Sprintf("%#v", val)
-	},
-}).Parse(`
-{{- define "item" -}}
-{{ stringIt . }}
-{{- end -}}
-`))
+var defaultTextFormat = internal.FormatFunc(func(val interface{}) ([]byte, error) {
+	if str, ok := val.(stringer); ok {
+		return []byte(str.String()), nil
+	}
+	return []byte(fmt.Sprintf("%#v", val)), nil
+})
 
 // Emitter provides a simple watchable data source with easy emission.
 type Emitter struct {
@@ -68,9 +63,6 @@ type Emitter struct {
 // Any templated passed must define an "item" block.
 func NewEmitter(name string, tmpl *template.Template) *Emitter {
 	name = fmt.Sprintf("/tap/%s", name)
-	if tmpl == nil {
-		tmpl = defaultTemplate
-	}
 	return &Emitter{
 		name: name,
 		tmpl: tmpl,
@@ -93,6 +85,16 @@ func (em *Emitter) Name() string {
 // TextTemplate returns the template used to marshal items human friendily.
 func (em *Emitter) TextTemplate() *template.Template {
 	return em.tmpl
+}
+
+// Formats returns emitter-specific formats.
+func (em *Emitter) Formats() map[string]source.GenericDataFormat {
+	if em.tmpl != nil {
+		return nil
+	}
+	return map[string]source.GenericDataFormat{
+		"text": defaultTextFormat,
+	}
 }
 
 // SetWatcher sets the watcher at source addition time.
