@@ -14,9 +14,17 @@ test: check-license lint
 vendor: glide.lock
 	glide install
 
-vendor/github.com/uber/uber-licence/package.json: vendor
+.PHONY: install_ci
+install_ci:
+	glide --version || go get -u -f github.com/Masterminds/glide
+	make vendor
+	glide install
+	go install ./vendor/github.com/golang/lint/golint
 
-vendor/github.com/uber/uber-licence/node_modules: vendor/github.com/uber/uber-licence/package.json
+vendor/github.com/uber/uber-licence: vendor
+	[ -d vendor/github.com/uber/uber-licence ] || glide install
+
+vendor/github.com/uber/uber-licence/node_modules: vendor/github.com/uber/uber-licence
 	cd vendor/github.com/uber/uber-licence && npm install
 
 .PHONY: check-license add-license

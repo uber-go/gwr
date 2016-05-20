@@ -1,10 +1,18 @@
-hash: c3338e51a629c1552680eea45021cc0317bbed5eea7d553e2a045fc68d410058
-updated: 2016-05-19T13:53:37.426967018-07:00
+hash: bed765da2127646b76aafc551c153306d294e1569a93eded9a26639b1d74c739
+updated: 2016-05-20T13:43:53.815898766-07:00
 imports:
+- name: github.com/golang/lint
+  version: c7bacac2b21ca01afa1dee0acf64df3ce047c28f
 - name: github.com/stretchr/testify
   version: 6cb3b85ef5a0efef77caef88363ec4d4b5c0976d
   subpackages:
   - assert
 - name: github.com/uber-common/stacked
   version: f68dcbe9559e6669e6f73c4dcdb8bfdbf13712bb
+- name: github.com/uber/uber-licence
+  version: e35b7f99af2d110505bc81d8a9449dafaa326730
+- name: golang.org/x/tools
+  version: 9ae4729fba20b3533d829a9c6ba8195b068f2abc
+  subpackages:
+  - go/gcimporter15
 devImports: []

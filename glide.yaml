@@ -5,5 +5,8 @@ import:
 - package: github.com/stretchr/testify
   subpackages:
   - assert
-devImports:
 - package: github.com/uber/uber-licence
+- package: github.com/golang/lint
+- package: golang.org/x/tools
+  subpackages:
+  - go/gcimporter15
