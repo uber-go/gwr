@@ -70,6 +70,14 @@ func NewDataSource(
 		formats = make(map[string]source.GenericDataFormat)
 	}
 
+	// source-defined formats
+	if fmtsrc, ok := src.(source.GenericDataSourceFormats); ok {
+		fmts := fmtsrc.Formats()
+		for name, fmt := range fmts {
+			formats[name] = fmt
+		}
+	}
+
 	// standard json protocol
 	if formats["json"] == nil {
 		formats["json"] = LDJSONMarshal
@@ -81,9 +89,6 @@ func NewDataSource(
 			formats["text"] = NewTemplatedMarshal(tt)
 		}
 	}
-
-	// TODO: source should be able to declare some formats in addition to any
-	// integratgor
 
 	ds := &DataSource{
 		source:   src,

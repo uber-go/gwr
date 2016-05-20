@@ -49,6 +49,12 @@ type TextTemplatedSource interface {
 	TextTemplate() *template.Template
 }
 
+// GenericDataSourceFormats is implemented by generic data sources to define
+// additional formats beyond the default json and templated text ones.
+type GenericDataSourceFormats interface {
+	Formats() map[string]GenericDataFormat
+}
+
 // GetableDataSource is the interface implemented by GenericDataSources that
 // support Get.  If a GenericDataSource does not implement GetableDataSource,
 // then any gets for it return source.ErrNotGetable.
