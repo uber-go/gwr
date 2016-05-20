@@ -76,8 +76,10 @@ func NewDataSource(
 	}
 
 	// convenience templated text protocol
-	if tt := src.TextTemplate(); tt != nil && formats["text"] == nil {
-		formats["text"] = NewTemplatedMarshal(tt)
+	if txtsrc, ok := src.(source.TextTemplatedSource); ok && formats["text"] == nil {
+		if tt := txtsrc.TextTemplate(); tt != nil && formats["text"] == nil {
+			formats["text"] = NewTemplatedMarshal(tt)
+		}
 	}
 
 	// TODO: source should be able to declare some formats in addition to any

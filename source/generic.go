@@ -39,7 +39,11 @@ type GenericDataWatcher interface {
 type GenericDataSource interface {
 	// Name must return the name of the data source; see DataSource.Name.
 	Name() string
+}
 
+// TextTemplatedSource is implemented by generic data sources to provide a
+// convenience template for the "text" format.
+type TextTemplatedSource interface {
 	// TextTemplate returns the text/template that is used to construct a
 	// TemplatedMarshal to implement the "text" format for this data source.
 	TextTemplate() *template.Template
