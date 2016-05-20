@@ -1,5 +1,5 @@
-hash: b7ae1841263ebba80ec32146dd425609e8cc0f0722c07ee8573224b68bdb1287
-updated: 2016-05-20T13:31:32.396125927-07:00
+hash: bed765da2127646b76aafc551c153306d294e1569a93eded9a26639b1d74c739
+updated: 2016-05-20T13:43:53.815898766-07:00
 imports:
 - name: github.com/golang/lint
   version: c7bacac2b21ca01afa1dee0acf64df3ce047c28f
@@ -11,4 +11,8 @@ imports:
   version: f68dcbe9559e6669e6f73c4dcdb8bfdbf13712bb
 - name: github.com/uber/uber-licence
   version: e35b7f99af2d110505bc81d8a9449dafaa326730
+- name: golang.org/x/tools
+  version: 9ae4729fba20b3533d829a9c6ba8195b068f2abc
+  subpackages:
+  - go/gcimporter15
 devImports: []

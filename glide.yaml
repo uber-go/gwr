@@ -7,3 +7,6 @@ import:
   - assert
 - package: github.com/uber/uber-licence
 - package: github.com/golang/lint
+- package: golang.org/x/tools
+  subpackages:
+  - go/gcimporter15
