@@ -24,6 +24,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"sync"
 
 	"github.com/uber-go/gwr/internal"
 	"github.com/uber-go/gwr/source"
@@ -198,6 +199,7 @@ func (mw *marshaledWatcher) emitBatch(items []interface{}) bool {
 }
 
 type defaultFrameWatcher struct {
+	sync.Mutex
 	format  source.GenericDataFormat
 	writers []io.Writer
 }
@@ -252,24 +254,32 @@ func (dfw *defaultFrameWatcher) HandleItems(items [][]byte) error {
 }
 
 func (dfw *defaultFrameWatcher) Close() error {
+	dfw.Lock()
+	writers := dfw.writers
+	dfw.writers = nil
+	dfw.Unlock()
+
 	var errs []error
-	for _, writer := range dfw.writers {
+	for _, writer := range writers {
 		if closer, ok := writer.(io.Closer); ok {
 			if err := closer.Close(); err != nil {
 				if errs == nil {
-					errs = make([]error, 0, len(dfw.writers))
+					errs = make([]error, 0, len(writers))
 				}
 				errs = append(errs, err)
 			}
 		}
 	}
-	dfw.writers = dfw.writers[:0]
+
 	return internal.MultiErr(errs).AsError()
 }
 
 func (dfw *defaultFrameWatcher) writeToAll(buf []byte) error {
 	// TODO: avoid blocking fan out, parallelize; error back-propagation then
 	// needs to happen over another channel
+
+	dfw.Lock()
+	defer dfw.Unlock()
 
 	var failed []int // TODO: could carry this rather than allocate on failure
 	for i, w := range dfw.writers {
