@@ -79,20 +79,14 @@ func TestDataSource_Watch_activation(t *testing.T) {
 	var ps pipeSet
 	defer ps.close()
 
-	watchit := func() {
-		w, err := ps.add()
-		require.NoError(t, err)
-		require.NoError(t, mds.Watch("json", w))
-	}
-
-	watchit()
+	require.NoError(t, ps.watch(mds, "json"))
 	assert.True(t, tds.hasActivated(), "first watcher causes activation")
 
 	// observe one
 	tds.emit(map[string]interface{}{"hello": "world"})
 	ps.assertGotJSON(t, 1, `{"hello":"world"}`)
 
-	watchit()
+	require.NoError(t, ps.watch(mds, "json"))
 	assert.False(t, tds.hasActivated(), "second watcher does not cause activation")
 
 	// observe two
@@ -106,6 +100,14 @@ func TestDataSource_Watch_activation(t *testing.T) {
 type pipeSet struct {
 	rs  []*os.File
 	scs []*bufio.Scanner
+}
+
+func (ps *pipeSet) watch(src source.DataSource, format string) error {
+	w, err := ps.add()
+	if err == nil {
+		err = src.Watch(format, w)
+	}
+	return err
 }
 
 func (ps *pipeSet) add() (*os.File, error) {
