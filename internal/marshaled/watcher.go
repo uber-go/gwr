@@ -223,10 +223,12 @@ func (dfw *defaultFrameWatcher) HandleItem(item []byte) error {
 	if len(dfw.writers) == 0 {
 		return errDefaultFrameWatcherDone
 	}
-	if buf, err := dfw.format.FrameItem(item); err != nil {
+	buf, err := dfw.format.FrameItem(item)
+	if err != nil {
 		log.Printf("item framing error %v", err)
 		return err
-	} else if err := dfw.writeToAll(buf); err != nil {
+	}
+	if err := dfw.writeToAll(buf); err != nil {
 		return err
 	}
 	return nil
@@ -237,10 +239,12 @@ func (dfw *defaultFrameWatcher) HandleItems(items [][]byte) error {
 		return errDefaultFrameWatcherDone
 	}
 	for _, item := range items {
-		if buf, err := dfw.format.FrameItem(item); err != nil {
+		buf, err := dfw.format.FrameItem(item)
+		if err != nil {
 			log.Printf("item framing error %v", err)
 			return err
-		} else if err := dfw.writeToAll(buf); err != nil {
+		}
+		if err := dfw.writeToAll(buf); err != nil {
 			return err
 		}
 	}
