@@ -58,7 +58,6 @@ func (tds *testDataSource) Activate() {
 
 func (tds *testDataSource) emit(item interface{}) {
 	if tds.watcher.Active() {
-		fmt.Printf("active <- %v\n", item)
 		tds.watcher.HandleItem(item)
 	}
 }
