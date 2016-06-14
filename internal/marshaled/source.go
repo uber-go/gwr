@@ -106,9 +106,6 @@ func NewDataSource(
 	sort.Strings(ds.formatNames)
 
 	if ds.watchSource != nil {
-		// TODO: tune size
-		ds.itemChan = make(chan interface{}, 100)
-		ds.itemsChan = make(chan []interface{}, 100)
 		ds.watchSource.SetWatcher(ds)
 	}
 
@@ -196,6 +193,9 @@ func (mds *DataSource) startWatching() error {
 	if !atomic.CompareAndSwapUint32(&mds.active, 0, 1) {
 		return nil
 	}
+	// TODO: tune size
+	mds.itemChan = make(chan interface{}, 100)
+	mds.itemsChan = make(chan []interface{}, 100)
 	go mds.processItemChan()
 	if mds.actiSource != nil {
 		mds.actiSource.Activate()
