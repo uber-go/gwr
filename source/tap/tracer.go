@@ -23,6 +23,7 @@ package tap
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/uber-go/gwr"
@@ -127,7 +128,7 @@ func MaybeScope(name string) *TraceScope {
 }
 
 // TODO: better do this
-var lastTraceId uint
+var lastTraceId uint64
 
 // TraceScope represents a traced scope, such as a function call, or an
 // iteration of a worker goroutine loop.
@@ -135,16 +136,15 @@ type TraceScope struct {
 	trc    *Tracer
 	top    *TraceScope
 	parent *TraceScope
-	id     uint
+	id     uint64
 	name   string
 }
 
 func newScope(trc *Tracer, parent *TraceScope, name string) *TraceScope {
-	lastTraceId++
 	sc := &TraceScope{
 		trc:    trc,
 		parent: parent,
-		id:     lastTraceId,
+		id:     atomic.AddUint64(&lastTraceId, 1),
 		name:   name,
 	}
 	if parent != nil {
@@ -293,9 +293,9 @@ func (args errArgs) String() string {
 type record struct {
 	Time     time.Time   `json:"time"`
 	Type     recordType  `json:"type"`
-	ScopeId  uint        `json:"scope_id"`
-	SpanId   uint        `json:"span_id"`
-	ParentId *uint       `json:"parent_id"`
+	ScopeId  uint64      `json:"scope_id"`
+	SpanId   uint64      `json:"span_id"`
+	ParentId *uint64     `json:"parent_id"`
 	Name     string      `json:"name"`
 	Args     interface{} `json:"args"`
 }
