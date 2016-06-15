@@ -26,6 +26,7 @@ import (
 	"sort"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/uber-go/gwr/source"
 )
@@ -58,6 +59,9 @@ type DataSource struct {
 	active      uint32
 	itemChan    chan interface{}
 	itemsChan   chan []interface{}
+	maxItems    int
+	maxBatches  int
+	maxWait     time.Duration
 }
 
 // NewDataSource creates a DataSource for a given format-agnostic data source
@@ -94,6 +98,10 @@ func NewDataSource(
 		source:   src,
 		formats:  formats,
 		watchers: make(map[string]*marshaledWatcher, len(formats)),
+		// TODO: tunable
+		maxItems:   100,
+		maxBatches: 100,
+		maxWait:    100 * time.Microsecond,
 	}
 	ds.getSource, _ = src.(source.GetableDataSource)
 	ds.watchSource, _ = src.(source.WatchableDataSource)
@@ -193,9 +201,8 @@ func (mds *DataSource) startWatching() error {
 	if !atomic.CompareAndSwapUint32(&mds.active, 0, 1) {
 		return nil
 	}
-	// TODO: tune size
-	mds.itemChan = make(chan interface{}, 100)
-	mds.itemsChan = make(chan []interface{}, 100)
+	mds.itemChan = make(chan interface{}, mds.maxItems)
+	mds.itemsChan = make(chan []interface{}, mds.maxBatches)
 	go mds.processItemChan()
 	if mds.actiSource != nil {
 		mds.actiSource.Activate()
@@ -249,7 +256,7 @@ func (mds *DataSource) HandleItem(item interface{}) bool {
 	select {
 	case mds.itemChan <- item:
 		return true
-	default:
+	case <-time.After(mds.maxWait):
 		mds.stopWatching()
 		return false
 	}
@@ -264,7 +271,7 @@ func (mds *DataSource) HandleItems(items []interface{}) bool {
 	select {
 	case mds.itemsChan <- items:
 		return true
-	default:
+	case <-time.After(mds.maxWait):
 		mds.stopWatching()
 		return false
 	}
