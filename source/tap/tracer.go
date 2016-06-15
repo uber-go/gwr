@@ -127,7 +127,7 @@ func MaybeScope(name string) *TraceScope {
 }
 
 // TODO: better do this
-var lastTraceId uint
+var lastTraceId uint64
 
 // TraceScope represents a traced scope, such as a function call, or an
 // iteration of a worker goroutine loop.
@@ -135,7 +135,7 @@ type TraceScope struct {
 	trc    *Tracer
 	top    *TraceScope
 	parent *TraceScope
-	id     uint
+	id     uint64
 	name   string
 }
 
@@ -293,9 +293,9 @@ func (args errArgs) String() string {
 type record struct {
 	Time     time.Time   `json:"time"`
 	Type     recordType  `json:"type"`
-	ScopeId  uint        `json:"scope_id"`
-	SpanId   uint        `json:"span_id"`
-	ParentId *uint       `json:"parent_id"`
+	ScopeId  uint64      `json:"scope_id"`
+	SpanId   uint64      `json:"span_id"`
+	ParentId *uint64     `json:"parent_id"`
 	Name     string      `json:"name"`
 	Args     interface{} `json:"args"`
 }
