@@ -23,6 +23,7 @@ package tap
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/uber-go/gwr"
@@ -140,11 +141,10 @@ type TraceScope struct {
 }
 
 func newScope(trc *Tracer, parent *TraceScope, name string) *TraceScope {
-	lastTraceId++
 	sc := &TraceScope{
 		trc:    trc,
 		parent: parent,
-		id:     lastTraceId,
+		id:     atomic.AddUint64(&lastTraceId, 1),
 		name:   name,
 	}
 	if parent != nil {
