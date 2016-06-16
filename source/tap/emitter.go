@@ -18,13 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Package tap provides a simple GWR data sources for tapping into arbitrary
-// points in your program where it wasn't worth the effort to write a
-// specialized data source.
-//
-// Currently a simple watchable-only emitter source is provided.
-//
-// TODO: coming soon: a simple sampled-source that also supports get.
 package tap
 
 import (
@@ -46,6 +39,8 @@ var defaultTextFormat = internal.FormatFunc(func(val interface{}) ([]byte, error
 	}
 	return []byte(fmt.Sprintf("%#v", val)), nil
 })
+
+// TODO: simple sampling extension to Emitter to implement Get
 
 // Emitter provides a simple watchable data source with easy emission.
 type Emitter struct {
