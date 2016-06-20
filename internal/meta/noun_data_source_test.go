@@ -22,6 +22,7 @@ package meta_test
 
 import (
 	"bufio"
+	"bytes"
 	"os"
 	"strings"
 	"testing"
@@ -70,10 +71,18 @@ func TestNounDataSource_Watch(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	getText := func() string {
+		var buf bytes.Buffer
+		mds.Get("text", &buf)
+		return buf.String()
+	}
+
 	// verify init data
 	assertJSONScanLine(t, sc,
 		`{"/meta/nouns":{"formats":["json","text"],"attrs":null}}`,
 		"should get /meta/nouns initially")
+	assert.Equal(t, getText(), "Data Sources:\n"+
+		"/meta/nouns formats: [json text]\n")
 
 	// add a data source, observe it
 	assert.NoError(t, dss.Add(marshaled.NewDataSource(&dummyDataSource{
@@ -83,6 +92,9 @@ func TestNounDataSource_Watch(t *testing.T) {
 	assertJSONScanLine(t, sc,
 		`{"name":"/foo","type":"add","info":{"formats":["json"],"attrs":null}}`,
 		"should get an add event for /foo")
+	assert.Equal(t, getText(), "Data Sources:\n"+
+		"/foo formats: [json]\n"+
+		"/meta/nouns formats: [json text]\n")
 
 	// add another data source, observe it
 	assert.NoError(t, dss.Add(marshaled.NewDataSource(&dummyDataSource{
@@ -92,18 +104,27 @@ func TestNounDataSource_Watch(t *testing.T) {
 	assertJSONScanLine(t, sc,
 		`{"name":"/bar","type":"add","info":{"formats":["json","text"],"attrs":null}}`,
 		"should get an add event for /bar")
+	assert.Equal(t, getText(), "Data Sources:\n"+
+		"/bar formats: [json text]\n"+
+		"/foo formats: [json]\n"+
+		"/meta/nouns formats: [json text]\n")
 
 	// remove the /foo data source, observe it
 	assert.NotNil(t, dss.Remove("/foo"), "expected a removed data source")
 	assertJSONScanLine(t, sc,
 		`{"name":"/foo","type":"remove"}`,
 		"should get a remove event for /foo")
+	assert.Equal(t, getText(), "Data Sources:\n"+
+		"/bar formats: [json text]\n"+
+		"/meta/nouns formats: [json text]\n")
 
 	// remove the /bar data source, observe it
 	assert.NotNil(t, dss.Remove("/bar"), "expected a removed data source")
 	assertJSONScanLine(t, sc,
 		`{"name":"/bar","type":"remove"}`,
 		"should get a remove event for /bar")
+	assert.Equal(t, getText(), "Data Sources:\n"+
+		"/meta/nouns formats: [json text]\n")
 
 	// shutdown the watch stream
 	assert.NoError(t, r.Close())
