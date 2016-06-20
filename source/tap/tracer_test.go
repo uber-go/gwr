@@ -40,7 +40,7 @@ func TestTracer_collatz(t *testing.T) {
 	n := collatz(5, sc)
 	sc.Close(n)
 	require.Equal(t, 1, n)
-	assert.Equal(t, []string{
+	assert.Equal(t, recodeTimeField(wat.AllStrings()), []string{
 		">>> t0 [1::1] collatzTest: ",
 		">>> t1 [1:1:2] collatz: 5",
 		"<<< t2 [1:1:2] collatz: 16",
@@ -53,7 +53,7 @@ func TestTracer_collatz(t *testing.T) {
 		">>> t9 [1:5:6] collatz: 2",
 		"<<< t10 [1:5:6] collatz: 1",
 		"<<< t11 [1::1] collatzTest: 1",
-	}, recodeTimeField(wat.AllStrings()))
+	})
 }
 
 func recodeTimeField(strs []string) []string {
