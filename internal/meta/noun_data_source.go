@@ -31,7 +31,8 @@ import (
 const NounsName = "/meta/nouns"
 
 var nounsTextTemplate = template.Must(template.New("meta_nouns_text").Parse(strings.TrimSpace(`
-{{ define "get" }}Data Sources:{{ range $name, $info := . }}{{ $name }} formats: {{ $info.Formats }}
+{{ define "get" }}Data Sources:
+{{ range $name, $info := . }}{{ $name }} formats: {{ $info.Formats }}
 {{ end }}{{ end }}
 `)))
 
