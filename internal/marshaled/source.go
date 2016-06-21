@@ -244,16 +244,6 @@ func (mds *DataSource) startWatching() error {
 	return nil
 }
 
-func (mds *DataSource) stopWatching() {
-	if !mds.active {
-		return
-	}
-	mds.active = false
-	for _, watcher := range mds.watchers {
-		watcher.Close()
-	}
-}
-
 func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan []interface{}) {
 	stop := false
 
@@ -307,16 +297,22 @@ loop:
 	}
 
 	mds.watchLock.Lock()
-	if stop {
-		mds.stopWatching()
-	}
 	if mds.itemChan == itemChan {
 		mds.itemChan = nil
 	}
 	if mds.itemsChan == itemsChan {
 		mds.itemsChan = nil
 	}
+	if stop {
+		mds.active = false
+	}
 	mds.watchLock.Unlock()
+
+	if stop {
+		for _, watcher := range mds.watchers {
+			watcher.Close()
+		}
+	}
 }
 
 // HandleItem implements GenericDataWatcher.HandleItem by passing the item to
@@ -330,8 +326,14 @@ func (mds *DataSource) HandleItem(item interface{}) bool {
 		return true
 	case <-time.After(mds.maxWait):
 		mds.watchLock.Lock()
-		mds.stopWatching()
+		if !mds.active {
+			return false
+		}
+		mds.active = false
 		mds.watchLock.Unlock()
+		for _, watcher := range mds.watchers {
+			watcher.Close()
+		}
 		return false
 	}
 }
@@ -347,8 +349,14 @@ func (mds *DataSource) HandleItems(items []interface{}) bool {
 		return true
 	case <-time.After(mds.maxWait):
 		mds.watchLock.Lock()
-		mds.stopWatching()
+		if !mds.active {
+			return false
+		}
+		mds.active = false
 		mds.watchLock.Unlock()
+		for _, watcher := range mds.watchers {
+			watcher.Close()
+		}
 		return false
 	}
 }
