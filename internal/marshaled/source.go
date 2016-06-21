@@ -240,6 +240,9 @@ func (mds *DataSource) processItemChan() {
 	for {
 		mds.watchLock.Lock()
 		active := mds.active
+		watchers := mds.watchers
+		itemChan := mds.itemChan
+		itemsChan := mds.itemsChan
 		mds.watchLock.Unlock()
 		if !active {
 			break
@@ -248,15 +251,15 @@ func (mds *DataSource) processItemChan() {
 		any := false
 
 		select {
-		case item := <-mds.itemChan:
-			for _, watcher := range mds.watchers {
+		case item := <-itemChan:
+			for _, watcher := range watchers {
 				if watcher.emit(item) {
 					any = true
 				}
 			}
 
-		case items := <-mds.itemsChan:
-			for _, watcher := range mds.watchers {
+		case items := <-itemsChan:
+			for _, watcher := range watchers {
 				if watcher.emitBatch(items) {
 					any = true
 				}
