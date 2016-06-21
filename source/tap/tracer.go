@@ -190,9 +190,9 @@ func (sc *TraceScope) OpenCall(args ...interface{}) *TraceScope {
 	return sc.emitRecord(beginRecord, callArgs(args))
 }
 
-// CloseCall emits a begin record for a function call with the given arguments.
-func (sc *TraceScope) CloseCall(args ...interface{}) *TraceScope {
-	return sc.emitRecord(endRecord, callArgs(args))
+// CloseCall emits an end record for a function call with the return values.
+func (sc *TraceScope) CloseCall(rets ...interface{}) *TraceScope {
+	return sc.emitRecord(endRecord, callRets(rets))
 }
 
 func (sc *TraceScope) emitRecord(t recordType, args interface{}) *TraceScope {
@@ -271,6 +271,12 @@ func (args callArgs) String() string {
 	return dumpArgs(args)
 }
 
+type callRets []interface{}
+
+func (args callRets) String() string {
+	return dumpArgs(args)
+}
+
 type errArgs struct {
 	name  string
 	err   error
@@ -313,6 +319,10 @@ func (rec record) String() string {
 		return fmt.Sprintf("%s %s [%s] %s(%s)",
 			rec.Type.MarkString(), rec.Time, rec.IDString(),
 			rec.Name, rec.Args)
+	case callRets:
+		return fmt.Sprintf("%s %s [%s] return %s",
+			rec.Type.MarkString(), rec.Time, rec.IDString(),
+			rec.Args)
 	default:
 		switch rec.Type {
 		case beginRecord:
