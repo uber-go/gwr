@@ -271,11 +271,14 @@ func (mds *DataSource) processItemChan() {
 			break
 		}
 	}
+
+	mds.watchLock.Lock()
 	if stop {
 		mds.stopWatching()
 	}
 	mds.itemChan = nil
 	mds.itemsChan = nil
+	mds.watchLock.Unlock()
 }
 
 // HandleItem implements GenericDataWatcher.HandleItem by passing the item to
