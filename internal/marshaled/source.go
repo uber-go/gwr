@@ -55,13 +55,14 @@ type DataSource struct {
 
 	formats     map[string]source.GenericDataFormat
 	formatNames []string
-	watchers    map[string]*marshaledWatcher
-	active      uint32
-	itemChan    chan interface{}
-	itemsChan   chan []interface{}
 	maxItems    int
 	maxBatches  int
 	maxWait     time.Duration
+
+	watchers  map[string]*marshaledWatcher
+	active    bool
+	itemChan  chan interface{}
+	itemsChan chan []interface{}
 }
 
 // NewDataSource creates a DataSource for a given format-agnostic data source
