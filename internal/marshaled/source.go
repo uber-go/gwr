@@ -247,7 +247,11 @@ loop:
 			break loop
 		}
 		select {
-		case item := <-itemChan:
+		case item, ok := <-itemChan:
+			if !ok {
+				itemChan = nil
+				continue loop
+			}
 			any := false
 			for _, watcher := range watchers {
 				if watcher.emit(item) {
@@ -259,7 +263,11 @@ loop:
 				break loop
 			}
 
-		case items := <-itemsChan:
+		case items, ok := <-itemsChan:
+			if !ok {
+				itemsChan = nil
+				continue loop
+			}
 			any := false
 			for _, watcher := range watchers {
 				if watcher.emitBatch(items) {
@@ -268,6 +276,11 @@ loop:
 			}
 			if !any {
 				stop = true
+				break loop
+			}
+
+		default:
+			if itemChan == nil && itemsChan == nil {
 				break loop
 			}
 		}
