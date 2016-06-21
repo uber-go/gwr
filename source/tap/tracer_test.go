@@ -41,18 +41,18 @@ func TestTracer_collatz(t *testing.T) {
 	sc.Close(n)
 	require.Equal(t, 1, n)
 	assert.Equal(t, recodeTimeField(wat.AllStrings()), []string{
-		">>> t0 [1::1] collatzTest: ",
-		">>> t1 [1:1:2] collatz: 5",
-		"<<< t2 [1:1:2] collatz: 16",
-		">>> t3 [1:2:3] collatz: 16",
-		"<<< t4 [1:2:3] collatz: 8",
-		">>> t5 [1:3:4] collatz: 8",
-		"<<< t6 [1:3:4] collatz: 4",
-		">>> t7 [1:4:5] collatz: 4",
-		"<<< t8 [1:4:5] collatz: 2",
-		">>> t9 [1:5:6] collatz: 2",
-		"<<< t10 [1:5:6] collatz: 1",
-		"<<< t11 [1::1] collatzTest: 1",
+		"--> t0 [1::1] collatzTest: ",
+		"--> t1 [1:1:2] collatz: 5",
+		"<-- t2 [1:1:2] collatz: 16",
+		"--> t3 [1:2:3] collatz: 16",
+		"<-- t4 [1:2:3] collatz: 8",
+		"--> t5 [1:3:4] collatz: 8",
+		"<-- t6 [1:3:4] collatz: 4",
+		"--> t7 [1:4:5] collatz: 4",
+		"<-- t8 [1:4:5] collatz: 2",
+		"--> t9 [1:5:6] collatz: 2",
+		"<-- t10 [1:5:6] collatz: 1",
+		"<-- t11 [1::1] collatzTest: 1",
 	})
 }
 

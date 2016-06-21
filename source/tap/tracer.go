@@ -247,11 +247,11 @@ func (t recordType) String() string {
 func (t recordType) MarkString() string {
 	switch t {
 	case beginRecord:
-		return ">>>"
+		return "-->"
 	case infoRecord:
 		return "..."
 	case endRecord:
-		return "<<<"
+		return "<--"
 	case errRecord:
 		return "!!!"
 	default:
