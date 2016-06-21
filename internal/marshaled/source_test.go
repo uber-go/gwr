@@ -85,17 +85,15 @@ func TestDataSource_Watch_activation(t *testing.T) {
 		require.NoError(t, mds.Watch("json", w))
 	}
 
-	// first watcher causes activation
 	watchit()
-	assert.True(t, tds.hasActivated())
+	assert.True(t, tds.hasActivated(), "first watcher causes activation")
 
 	// observe one
 	tds.emit(map[string]interface{}{"hello": "world"})
 	ps.assertGotJSON(t, 1, `{"hello":"world"}`)
 
-	// second watcher does not cause activation
 	watchit()
-	assert.False(t, tds.hasActivated())
+	assert.False(t, tds.hasActivated(), "second watcher does not cause activation")
 
 	// observe two
 	tds.emit(map[string]interface{}{"hello": "world2"})
