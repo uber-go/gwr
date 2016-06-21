@@ -237,13 +237,14 @@ func (mds *DataSource) stopWatching() {
 func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan []interface{}) {
 	stop := false
 
+loop:
 	for {
 		mds.watchLock.Lock()
 		active := mds.active
 		watchers := mds.watchers
 		mds.watchLock.Unlock()
 		if !active {
-			break
+			break loop
 		}
 
 		any := false
@@ -266,7 +267,7 @@ func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan
 
 		if !any {
 			stop = true
-			break
+			break loop
 		}
 	}
 
