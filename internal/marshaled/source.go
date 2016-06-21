@@ -246,6 +246,40 @@ func (mds *DataSource) startWatching() error {
 	return nil
 }
 
+// Drain closes the item channels, and waits for the item processor to finish.
+// After drain, any remaining watchers are closed, and the source goes
+// inactive.
+func (mds *DataSource) Drain() {
+	mds.watchLock.Lock()
+	any := false
+	if mds.itemChan != nil {
+		close(mds.itemChan)
+		any = true
+		mds.itemChan = nil
+	}
+	if mds.itemsChan != nil {
+		close(mds.itemsChan)
+		any = true
+		mds.itemsChan = nil
+	}
+	if any {
+		mds.watchLock.Unlock()
+		mds.procs.Wait()
+		mds.watchLock.Lock()
+	}
+	stop := mds.active
+	if stop {
+		mds.active = false
+	}
+	mds.watchLock.Unlock()
+
+	if stop {
+		for _, watcher := range mds.watchers {
+			watcher.Close()
+		}
+	}
+}
+
 func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan []interface{}) {
 	defer mds.procs.Done()
 
