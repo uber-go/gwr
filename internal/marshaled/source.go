@@ -291,7 +291,9 @@ func (mds *DataSource) HandleItem(item interface{}) bool {
 	case mds.itemChan <- item:
 		return true
 	case <-time.After(mds.maxWait):
+		mds.watchLock.Lock()
 		mds.stopWatching()
+		mds.watchLock.Unlock()
 		return false
 	}
 }
@@ -306,7 +308,9 @@ func (mds *DataSource) HandleItems(items []interface{}) bool {
 	case mds.itemsChan <- items:
 		return true
 	case <-time.After(mds.maxWait):
+		mds.watchLock.Lock()
 		mds.stopWatching()
+		mds.watchLock.Unlock()
 		return false
 	}
 }
