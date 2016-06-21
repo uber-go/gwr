@@ -246,28 +246,30 @@ loop:
 		if !active {
 			break loop
 		}
-
-		any := false
-
 		select {
 		case item := <-itemChan:
+			any := false
 			for _, watcher := range watchers {
 				if watcher.emit(item) {
 					any = true
 				}
 			}
+			if !any {
+				stop = true
+				break loop
+			}
 
 		case items := <-itemsChan:
+			any := false
 			for _, watcher := range watchers {
 				if watcher.emitBatch(items) {
 					any = true
 				}
 			}
-		}
-
-		if !any {
-			stop = true
-			break loop
+			if !any {
+				stop = true
+				break loop
+			}
 		}
 	}
 
