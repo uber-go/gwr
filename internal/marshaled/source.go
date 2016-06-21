@@ -25,7 +25,7 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/uber-go/gwr/source"
@@ -59,6 +59,7 @@ type DataSource struct {
 	maxBatches  int
 	maxWait     time.Duration
 
+	watchLock sync.Mutex
 	watchers  map[string]*marshaledWatcher
 	active    bool
 	itemChan  chan interface{}
@@ -124,7 +125,10 @@ func NewDataSource(
 // Active returns true if there are any active watchers, false otherwise.  If
 // Active returns false, so will any calls to HandleItem and HandleItems.
 func (mds *DataSource) Active() bool {
-	return atomic.LoadUint32(&mds.active) != 0
+	mds.watchLock.Lock()
+	r := mds.active
+	mds.watchLock.Unlock()
+	return r
 }
 
 // Name passes through the GenericDataSource.Name()
@@ -199,9 +203,10 @@ func (mds *DataSource) WatchItems(formatName string, iw source.ItemWatcher) erro
 
 func (mds *DataSource) startWatching() error {
 	// TODO: we could optimize the only-one-format-being-watched case
-	if !atomic.CompareAndSwapUint32(&mds.active, 0, 1) {
+	if mds.active {
 		return nil
 	}
+	mds.active = true
 	mds.itemChan = make(chan interface{}, mds.maxItems)
 	mds.itemsChan = make(chan []interface{}, mds.maxBatches)
 	go mds.processItemChan()
@@ -212,9 +217,10 @@ func (mds *DataSource) startWatching() error {
 }
 
 func (mds *DataSource) stopWatching() {
-	if !atomic.CompareAndSwapUint32(&mds.active, 1, 0) {
+	if !mds.active {
 		return
 	}
+	mds.active = false
 	for _, watcher := range mds.watchers {
 		watcher.Close()
 	}
