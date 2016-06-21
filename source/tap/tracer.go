@@ -130,6 +130,12 @@ func MaybeScope(name string) *TraceScope {
 // TODO: better do this
 var lastTraceId uint64
 
+// ResetTraceID resets the last trace id; this is intended to be used only for
+// test stability.
+func ResetTraceID() {
+	atomic.StoreUint64(&lastTraceId, 0)
+}
+
 // TraceScope represents a traced scope, such as a function call, or an
 // iteration of a worker goroutine loop.
 type TraceScope struct {
@@ -190,9 +196,9 @@ func (sc *TraceScope) OpenCall(args ...interface{}) *TraceScope {
 	return sc.emitRecord(beginRecord, callArgs(args))
 }
 
-// CloseCall emits a begin record for a function call with the given arguments.
-func (sc *TraceScope) CloseCall(args ...interface{}) *TraceScope {
-	return sc.emitRecord(endRecord, callArgs(args))
+// CloseCall emits an end record for a function call with the return values.
+func (sc *TraceScope) CloseCall(rets ...interface{}) *TraceScope {
+	return sc.emitRecord(endRecord, callRets(rets))
 }
 
 func (sc *TraceScope) emitRecord(t recordType, args interface{}) *TraceScope {
@@ -247,11 +253,11 @@ func (t recordType) String() string {
 func (t recordType) MarkString() string {
 	switch t {
 	case beginRecord:
-		return ">>>"
+		return "-->"
 	case infoRecord:
 		return "..."
 	case endRecord:
-		return "<<<"
+		return "<--"
 	case errRecord:
 		return "!!!"
 	default:
@@ -268,6 +274,12 @@ func (args genericArgs) String() string {
 type callArgs []interface{}
 
 func (args callArgs) String() string {
+	return dumpArgs(args)
+}
+
+type callRets []interface{}
+
+func (args callRets) String() string {
 	return dumpArgs(args)
 }
 
@@ -308,14 +320,25 @@ func (rec record) IDString() string {
 }
 
 func (rec record) String() string {
-	var format string
-	if _, isCallArgs := rec.Args.(callArgs); isCallArgs {
-		format = "%s %s [%s] %s(%s)"
-	} else {
-		format = "%s %s [%s] %s: %s"
+	switch rec.Args.(type) {
+	case callArgs:
+		return fmt.Sprintf("%s %s [%s] %s(%s)",
+			rec.Type.MarkString(), rec.Time, rec.IDString(),
+			rec.Name, rec.Args)
+	case callRets:
+		return fmt.Sprintf("%s %s [%s] return %s",
+			rec.Type.MarkString(), rec.Time, rec.IDString(),
+			rec.Args)
+	default:
+		switch rec.Type {
+		case beginRecord:
+			return fmt.Sprintf("%s %s [%s] %s: %s",
+				rec.Type.MarkString(), rec.Time, rec.IDString(),
+				rec.Name, rec.Args)
+		default:
+			return fmt.Sprintf("%s %s [%s] %s",
+				rec.Type.MarkString(), rec.Time, rec.IDString(),
+				rec.Args)
+		}
 	}
-	// .Format(time.RFC3339Nano),
-	return fmt.Sprintf(format,
-		rec.Type.MarkString(), rec.Time, rec.IDString(),
-		rec.Name, rec.Args)
 }
