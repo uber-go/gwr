@@ -59,6 +59,7 @@ type DataSource struct {
 	maxBatches  int
 	maxWait     time.Duration
 
+	procs     sync.WaitGroup
 	watchLock sync.Mutex
 	watchers  map[string]*marshaledWatcher
 	active    bool
@@ -240,11 +241,14 @@ func (mds *DataSource) startWatching() error {
 	mds.active = true
 	mds.itemChan = make(chan interface{}, mds.maxItems)
 	mds.itemsChan = make(chan []interface{}, mds.maxBatches)
+	mds.procs.Add(1)
 	go mds.processItemChan(mds.itemChan, mds.itemsChan)
 	return nil
 }
 
 func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan []interface{}) {
+	defer mds.procs.Done()
+
 	stop := false
 
 loop:
