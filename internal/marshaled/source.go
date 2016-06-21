@@ -277,8 +277,12 @@ loop:
 	if stop {
 		mds.stopWatching()
 	}
-	mds.itemChan = nil
-	mds.itemsChan = nil
+	if mds.itemChan == itemChan {
+		mds.itemChan = nil
+	}
+	if mds.itemsChan == itemsChan {
+		mds.itemsChan = nil
+	}
 	mds.watchLock.Unlock()
 }
 
