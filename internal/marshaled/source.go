@@ -127,7 +127,7 @@ func NewDataSource(
 // Active returns false, so will any calls to HandleItem and HandleItems.
 func (mds *DataSource) Active() bool {
 	mds.watchLock.Lock()
-	r := mds.active
+	r := mds.active && mds.itemChan != nil && mds.itemsChan != nil
 	mds.watchLock.Unlock()
 	return r
 }
