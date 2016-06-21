@@ -217,7 +217,7 @@ func (mds *DataSource) startWatching() error {
 	mds.active = true
 	mds.itemChan = make(chan interface{}, mds.maxItems)
 	mds.itemsChan = make(chan []interface{}, mds.maxBatches)
-	go mds.processItemChan()
+	go mds.processItemChan(mds.itemChan, mds.itemsChan)
 	if mds.actiSource != nil {
 		mds.actiSource.Activate()
 	}
@@ -234,15 +234,13 @@ func (mds *DataSource) stopWatching() {
 	}
 }
 
-func (mds *DataSource) processItemChan() {
+func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan []interface{}) {
 	stop := false
 
 	for {
 		mds.watchLock.Lock()
 		active := mds.active
 		watchers := mds.watchers
-		itemChan := mds.itemChan
-		itemsChan := mds.itemsChan
 		mds.watchLock.Unlock()
 		if !active {
 			break
