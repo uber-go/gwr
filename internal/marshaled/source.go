@@ -237,7 +237,14 @@ func (mds *DataSource) stopWatching() {
 func (mds *DataSource) processItemChan() {
 	stop := false
 
-	for mds.Active() {
+	for {
+		mds.watchLock.Lock()
+		active := mds.active
+		mds.watchLock.Unlock()
+		if !active {
+			break
+		}
+
 		any := false
 
 		select {
