@@ -176,16 +176,26 @@ func (mds *DataSource) Watch(formatName string, w io.Writer) error {
 	}
 
 	mds.watchLock.Lock()
-	defer mds.watchLock.Unlock()
+	acted := !mds.active
+	err := func() error {
+		defer mds.watchLock.Unlock()
+		watcher, ok := mds.watchers[strings.ToLower(formatName)]
+		if !ok {
+			return source.ErrUnsupportedFormat
+		}
+		if err := watcher.init(w); err != nil {
+			return err
+		}
+		if err := mds.startWatching(); err != nil {
+			return err
+		}
+		return nil
+	}()
 
-	watcher, ok := mds.watchers[strings.ToLower(formatName)]
-	if !ok {
-		return source.ErrUnsupportedFormat
+	if err == nil && acted && mds.actiSource != nil {
+		mds.actiSource.Activate()
 	}
-	if err := watcher.init(w); err != nil {
-		return err
-	}
-	return mds.startWatching()
+	return err
 }
 
 // WatchItems marshals any data source GetInit data as a single item to the
@@ -197,18 +207,31 @@ func (mds *DataSource) WatchItems(formatName string, iw source.ItemWatcher) erro
 	}
 
 	mds.watchLock.Lock()
-	defer mds.watchLock.Unlock()
+	acted := !mds.active
+	err := func() error {
+		defer mds.watchLock.Unlock()
+		watcher, ok := mds.watchers[strings.ToLower(formatName)]
+		if !ok {
+			return source.ErrUnsupportedFormat
+		}
+		if err := watcher.initItems(iw); err != nil {
+			return err
+		}
+		if err := mds.startWatching(); err != nil {
+			return err
+		}
+		return nil
+	}()
 
-	watcher, ok := mds.watchers[strings.ToLower(formatName)]
-	if !ok {
-		return source.ErrUnsupportedFormat
+	if err == nil && acted && mds.actiSource != nil {
+		mds.actiSource.Activate()
 	}
-	if err := watcher.initItems(iw); err != nil {
-		return err
-	}
-	return mds.startWatching()
+	return err
 }
 
+// startWatching flips the active bit, creates new item channels, and starts a
+// processing go routine; it assumes that the watchLock is being held by the
+// caller.
 func (mds *DataSource) startWatching() error {
 	// TODO: we could optimize the only-one-format-being-watched case
 	if mds.active {
@@ -218,9 +241,6 @@ func (mds *DataSource) startWatching() error {
 	mds.itemChan = make(chan interface{}, mds.maxItems)
 	mds.itemsChan = make(chan []interface{}, mds.maxBatches)
 	go mds.processItemChan(mds.itemChan, mds.itemsChan)
-	if mds.actiSource != nil {
-		mds.actiSource.Activate()
-	}
 	return nil
 }
 
