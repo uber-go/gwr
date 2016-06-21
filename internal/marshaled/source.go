@@ -174,6 +174,10 @@ func (mds *DataSource) Watch(formatName string, w io.Writer) error {
 	if mds.watchSource == nil {
 		return source.ErrNotWatchable
 	}
+
+	mds.watchLock.Lock()
+	defer mds.watchLock.Unlock()
+
 	watcher, ok := mds.watchers[strings.ToLower(formatName)]
 	if !ok {
 		return source.ErrUnsupportedFormat
@@ -191,6 +195,10 @@ func (mds *DataSource) WatchItems(formatName string, iw source.ItemWatcher) erro
 	if mds.watchSource == nil {
 		return source.ErrNotWatchable
 	}
+
+	mds.watchLock.Lock()
+	defer mds.watchLock.Unlock()
+
 	watcher, ok := mds.watchers[strings.ToLower(formatName)]
 	if !ok {
 		return source.ErrUnsupportedFormat
