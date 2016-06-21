@@ -33,6 +33,7 @@ import (
 )
 
 func TestTracer_collatz(t *testing.T) {
+	tap.ResetTraceID()
 	tracer := tap.NewTracer("test")
 	wat := test.NewWatcher()
 	tracer.SetWatcher(wat)

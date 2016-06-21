@@ -130,6 +130,12 @@ func MaybeScope(name string) *TraceScope {
 // TODO: better do this
 var lastTraceId uint64
 
+// ResetTraceID resets the last trace id; this is intended to be used only for
+// test stability.
+func ResetTraceID() {
+	atomic.StoreUint64(&lastTraceId, 0)
+}
+
 // TraceScope represents a traced scope, such as a function call, or an
 // iteration of a worker goroutine loop.
 type TraceScope struct {
