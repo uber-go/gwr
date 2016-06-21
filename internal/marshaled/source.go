@@ -221,6 +221,8 @@ func (mds *DataSource) stopWatching() {
 }
 
 func (mds *DataSource) processItemChan() {
+	stop := false
+
 	for mds.Active() {
 		any := false
 
@@ -241,8 +243,12 @@ func (mds *DataSource) processItemChan() {
 		}
 
 		if !any {
-			mds.stopWatching()
+			stop = true
+			break
 		}
+	}
+	if stop {
+		mds.stopWatching()
 	}
 	mds.itemChan = nil
 	mds.itemsChan = nil
