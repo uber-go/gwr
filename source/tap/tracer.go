@@ -314,8 +314,15 @@ func (rec record) String() string {
 			rec.Type.MarkString(), rec.Time, rec.IDString(),
 			rec.Name, rec.Args)
 	default:
-		return fmt.Sprintf("%s %s [%s] %s: %s",
-			rec.Type.MarkString(), rec.Time, rec.IDString(),
-			rec.Name, rec.Args)
+		switch rec.Type {
+		case beginRecord:
+			return fmt.Sprintf("%s %s [%s] %s: %s",
+				rec.Type.MarkString(), rec.Time, rec.IDString(),
+				rec.Name, rec.Args)
+		default:
+			return fmt.Sprintf("%s %s [%s] %s",
+				rec.Type.MarkString(), rec.Time, rec.IDString(),
+				rec.Args)
+		}
 	}
 }
