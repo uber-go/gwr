@@ -25,7 +25,7 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	"github.com/uber-go/gwr/source"
@@ -55,13 +55,15 @@ type DataSource struct {
 
 	formats     map[string]source.GenericDataFormat
 	formatNames []string
-	watchers    map[string]*marshaledWatcher
-	active      uint32
-	itemChan    chan interface{}
-	itemsChan   chan []interface{}
 	maxItems    int
 	maxBatches  int
 	maxWait     time.Duration
+
+	watchLock sync.Mutex
+	watchers  map[string]*marshaledWatcher
+	active    bool
+	itemChan  chan interface{}
+	itemsChan chan []interface{}
 }
 
 // NewDataSource creates a DataSource for a given format-agnostic data source
@@ -123,7 +125,10 @@ func NewDataSource(
 // Active returns true if there are any active watchers, false otherwise.  If
 // Active returns false, so will any calls to HandleItem and HandleItems.
 func (mds *DataSource) Active() bool {
-	return atomic.LoadUint32(&mds.active) != 0
+	mds.watchLock.Lock()
+	r := mds.active
+	mds.watchLock.Unlock()
+	return r
 }
 
 // Name passes through the GenericDataSource.Name()
@@ -169,14 +174,28 @@ func (mds *DataSource) Watch(formatName string, w io.Writer) error {
 	if mds.watchSource == nil {
 		return source.ErrNotWatchable
 	}
-	watcher, ok := mds.watchers[strings.ToLower(formatName)]
-	if !ok {
-		return source.ErrUnsupportedFormat
+
+	mds.watchLock.Lock()
+	acted := !mds.active
+	err := func() error {
+		defer mds.watchLock.Unlock()
+		watcher, ok := mds.watchers[strings.ToLower(formatName)]
+		if !ok {
+			return source.ErrUnsupportedFormat
+		}
+		if err := watcher.init(w); err != nil {
+			return err
+		}
+		if err := mds.startWatching(); err != nil {
+			return err
+		}
+		return nil
+	}()
+
+	if err == nil && acted && mds.actiSource != nil {
+		mds.actiSource.Activate()
 	}
-	if err := watcher.init(w); err != nil {
-		return err
-	}
-	return mds.startWatching()
+	return err
 }
 
 // WatchItems marshals any data source GetInit data as a single item to the
@@ -186,65 +205,114 @@ func (mds *DataSource) WatchItems(formatName string, iw source.ItemWatcher) erro
 	if mds.watchSource == nil {
 		return source.ErrNotWatchable
 	}
-	watcher, ok := mds.watchers[strings.ToLower(formatName)]
-	if !ok {
-		return source.ErrUnsupportedFormat
-	}
-	if err := watcher.initItems(iw); err != nil {
-		return err
-	}
-	return mds.startWatching()
-}
 
-func (mds *DataSource) startWatching() error {
-	// TODO: we could optimize the only-one-format-being-watched case
-	if !atomic.CompareAndSwapUint32(&mds.active, 0, 1) {
+	mds.watchLock.Lock()
+	acted := !mds.active
+	err := func() error {
+		defer mds.watchLock.Unlock()
+		watcher, ok := mds.watchers[strings.ToLower(formatName)]
+		if !ok {
+			return source.ErrUnsupportedFormat
+		}
+		if err := watcher.initItems(iw); err != nil {
+			return err
+		}
+		if err := mds.startWatching(); err != nil {
+			return err
+		}
 		return nil
-	}
-	mds.itemChan = make(chan interface{}, mds.maxItems)
-	mds.itemsChan = make(chan []interface{}, mds.maxBatches)
-	go mds.processItemChan()
-	if mds.actiSource != nil {
+	}()
+
+	if err == nil && acted && mds.actiSource != nil {
 		mds.actiSource.Activate()
 	}
+	return err
+}
+
+// startWatching flips the active bit, creates new item channels, and starts a
+// processing go routine; it assumes that the watchLock is being held by the
+// caller.
+func (mds *DataSource) startWatching() error {
+	// TODO: we could optimize the only-one-format-being-watched case
+	if mds.active {
+		return nil
+	}
+	mds.active = true
+	mds.itemChan = make(chan interface{}, mds.maxItems)
+	mds.itemsChan = make(chan []interface{}, mds.maxBatches)
+	go mds.processItemChan(mds.itemChan, mds.itemsChan)
 	return nil
 }
 
-func (mds *DataSource) stopWatching() {
-	if !atomic.CompareAndSwapUint32(&mds.active, 1, 0) {
-		return
-	}
-	for _, watcher := range mds.watchers {
-		watcher.Close()
-	}
-}
+func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan []interface{}) {
+	stop := false
 
-func (mds *DataSource) processItemChan() {
-	for mds.Active() {
-		any := false
-
+loop:
+	for {
+		mds.watchLock.Lock()
+		active := mds.active
+		watchers := mds.watchers
+		mds.watchLock.Unlock()
+		if !active {
+			break loop
+		}
 		select {
-		case item := <-mds.itemChan:
-			for _, watcher := range mds.watchers {
+		case item, ok := <-itemChan:
+			if !ok {
+				itemChan = nil
+				continue loop
+			}
+			any := false
+			for _, watcher := range watchers {
 				if watcher.emit(item) {
 					any = true
 				}
 			}
+			if !any {
+				stop = true
+				break loop
+			}
 
-		case items := <-mds.itemsChan:
-			for _, watcher := range mds.watchers {
+		case items, ok := <-itemsChan:
+			if !ok {
+				itemsChan = nil
+				continue loop
+			}
+			any := false
+			for _, watcher := range watchers {
 				if watcher.emitBatch(items) {
 					any = true
 				}
 			}
-		}
+			if !any {
+				stop = true
+				break loop
+			}
 
-		if !any {
-			mds.stopWatching()
+		default:
+			if itemChan == nil && itemsChan == nil {
+				break loop
+			}
 		}
 	}
-	mds.itemChan = nil
-	mds.itemsChan = nil
+
+	mds.watchLock.Lock()
+	if mds.itemChan == itemChan {
+		mds.itemChan = nil
+	}
+	if mds.itemsChan == itemsChan {
+		mds.itemsChan = nil
+	}
+	if stop {
+		mds.active = false
+	}
+	mds.watchLock.Unlock()
+
+	if stop {
+		for _, watcher := range mds.watchers {
+			watcher.Close()
+		}
+	}
 }
 
 // HandleItem implements GenericDataWatcher.HandleItem by passing the item to
@@ -257,7 +325,15 @@ func (mds *DataSource) HandleItem(item interface{}) bool {
 	case mds.itemChan <- item:
 		return true
 	case <-time.After(mds.maxWait):
-		mds.stopWatching()
+		mds.watchLock.Lock()
+		if !mds.active {
+			return false
+		}
+		mds.active = false
+		mds.watchLock.Unlock()
+		for _, watcher := range mds.watchers {
+			watcher.Close()
+		}
 		return false
 	}
 }
@@ -272,7 +348,15 @@ func (mds *DataSource) HandleItems(items []interface{}) bool {
 	case mds.itemsChan <- items:
 		return true
 	case <-time.After(mds.maxWait):
-		mds.stopWatching()
+		mds.watchLock.Lock()
+		if !mds.active {
+			return false
+		}
+		mds.active = false
+		mds.watchLock.Unlock()
+		for _, watcher := range mds.watchers {
+			watcher.Close()
+		}
 		return false
 	}
 }
