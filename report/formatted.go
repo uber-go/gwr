@@ -34,7 +34,9 @@ var errRawSource = errors.New("raw sources unsupported, only item data sources")
 //
 // For example to send a source to stdandard output:
 //     rep := NewPrintfReporter(someSource, fmt.Printf)
-//     rep.Start() // TODO: error check
+//     if err := rep.Start(); err != nil {
+//         panic(err)
+//     }
 //     defer rep.Stop()
 type FormattedReporter interface {
 	source.ItemWatcher
@@ -43,34 +45,34 @@ type FormattedReporter interface {
 	Stop()
 }
 
-// LogfReporter is a FormattedReporter that targets a log formatting function.
-type LogfReporter struct {
+// logfReporter is a FormattedReporter that targets a log formatting function.
+type logfReporter struct {
 	src     source.DataSource
 	logf    func(format string, args ...interface{})
 	stopped bool
 }
 
-// NewLogfReporter creates a new LogfReporter around a log formatting
+// NewLogfReporter creates a FormattedReporter around a log formatting
 // function.  Log formatting functions are not expected to return an error, and
 // are expected to handle their own framing concerns (e.g. adding a trailing
 // newline).
 func NewLogfReporter(
 	src source.DataSource,
 	logf func(format string, args ...interface{}),
-) *LogfReporter {
-	return &LogfReporter{
+) FormattedReporter {
+	return &logfReporter{
 		src:  src,
 		logf: logf,
 	}
 }
 
 // Source returns the target source.
-func (rep *LogfReporter) Source() source.DataSource {
+func (rep *logfReporter) Source() source.DataSource {
 	return rep.src
 }
 
 // Start clears any stop flag, and starts watching the data source.
-func (rep *LogfReporter) Start() error {
+func (rep *logfReporter) Start() error {
 	var err error
 	rep.stopped = false
 	if isrc, ok := rep.src.(source.ItemDataSource); ok {
@@ -86,13 +88,13 @@ func (rep *LogfReporter) Start() error {
 
 // Stop sets a flag internally so that the next HandleItem(s) will return an
 // error, removing the watcher resource.
-func (rep *LogfReporter) Stop() {
+func (rep *logfReporter) Stop() {
 	rep.stopped = true
 }
 
 // HandleItem outputs the item to the logging function with a source-name
 // prefix.
-func (rep *LogfReporter) HandleItem(item []byte) error {
+func (rep *logfReporter) HandleItem(item []byte) error {
 	if rep.stopped {
 		return errReporterClosed
 	}
@@ -102,7 +104,7 @@ func (rep *LogfReporter) HandleItem(item []byte) error {
 
 // HandleItems outputs all items to the logging function with a source-name
 // prefix on each item.
-func (rep *LogfReporter) HandleItems(items [][]byte) error {
+func (rep *logfReporter) HandleItems(items [][]byte) error {
 	if rep.stopped {
 		return errReporterClosed
 	}
@@ -113,8 +115,8 @@ func (rep *LogfReporter) HandleItems(items [][]byte) error {
 	return nil
 }
 
-// PrintfReporter is a FormattedReporter that targets a log formatting function.
-type PrintfReporter struct {
+// printfReporter is a FormattedReporter that targets a log formatting function.
+type printfReporter struct {
 	src     source.DataSource
 	printf  func(format string, args ...interface{}) (int, error)
 	stopped bool
@@ -128,20 +130,20 @@ type PrintfReporter struct {
 func NewPrintfReporter(
 	src source.DataSource,
 	printf func(format string, args ...interface{}) (int, error),
-) *PrintfReporter {
-	return &PrintfReporter{
+) FormattedReporter {
+	return &printfReporter{
 		src:    src,
 		printf: printf,
 	}
 }
 
 // Source returns the target source.
-func (rep *PrintfReporter) Source() source.DataSource {
+func (rep *printfReporter) Source() source.DataSource {
 	return rep.src
 }
 
 // Start clears any stop flag, and starts watching the data source.
-func (rep *PrintfReporter) Start() error {
+func (rep *printfReporter) Start() error {
 	var err error
 	rep.stopped = false
 	if isrc, ok := rep.src.(source.ItemDataSource); ok {
@@ -157,13 +159,13 @@ func (rep *PrintfReporter) Start() error {
 
 // Stop sets a flag internally so that the next HandleItem(s) will return an
 // error, removing the watcher resource.
-func (rep *PrintfReporter) Stop() {
+func (rep *printfReporter) Stop() {
 	rep.stopped = true
 }
 
 // HandleItem outputs the item to the printf function with a source-name
 // prefix and trailing newline.
-func (rep *PrintfReporter) HandleItem(item []byte) error {
+func (rep *printfReporter) HandleItem(item []byte) error {
 	if rep.stopped {
 		return errReporterClosed
 	}
@@ -176,7 +178,7 @@ func (rep *PrintfReporter) HandleItem(item []byte) error {
 
 // HandleItems outputs all items to the logging function with a source-name
 // prefix and trailing newline on each item.
-func (rep *PrintfReporter) HandleItems(items [][]byte) error {
+func (rep *printfReporter) HandleItems(items [][]byte) error {
 	if rep.stopped {
 		return errReporterClosed
 	}
