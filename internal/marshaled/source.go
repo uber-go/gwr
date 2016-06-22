@@ -59,6 +59,7 @@ type DataSource struct {
 	maxBatches  int
 	maxWait     time.Duration
 
+	procs     sync.WaitGroup
 	watchLock sync.Mutex
 	watchers  map[string]*marshaledWatcher
 	active    bool
@@ -126,7 +127,7 @@ func NewDataSource(
 // Active returns false, so will any calls to HandleItem and HandleItems.
 func (mds *DataSource) Active() bool {
 	mds.watchLock.Lock()
-	r := mds.active
+	r := mds.active && mds.itemChan != nil && mds.itemsChan != nil
 	mds.watchLock.Unlock()
 	return r
 }
@@ -240,11 +241,48 @@ func (mds *DataSource) startWatching() error {
 	mds.active = true
 	mds.itemChan = make(chan interface{}, mds.maxItems)
 	mds.itemsChan = make(chan []interface{}, mds.maxBatches)
+	mds.procs.Add(1)
 	go mds.processItemChan(mds.itemChan, mds.itemsChan)
 	return nil
 }
 
+// Drain closes the item channels, and waits for the item processor to finish.
+// After drain, any remaining watchers are closed, and the source goes
+// inactive.
+func (mds *DataSource) Drain() {
+	mds.watchLock.Lock()
+	any := false
+	if mds.itemChan != nil {
+		close(mds.itemChan)
+		any = true
+		mds.itemChan = nil
+	}
+	if mds.itemsChan != nil {
+		close(mds.itemsChan)
+		any = true
+		mds.itemsChan = nil
+	}
+	if any {
+		mds.watchLock.Unlock()
+		mds.procs.Wait()
+		mds.watchLock.Lock()
+	}
+	stop := mds.active
+	if stop {
+		mds.active = false
+	}
+	mds.watchLock.Unlock()
+
+	if stop {
+		for _, watcher := range mds.watchers {
+			watcher.Close()
+		}
+	}
+}
+
 func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan []interface{}) {
+	defer mds.procs.Done()
+
 	stop := false
 
 loop:
