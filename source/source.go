@@ -100,3 +100,10 @@ type DataSource interface {
 	//   indentation or a double blank line to separate itself from siblings
 	Watch(format string, w io.Writer) error
 }
+
+// DrainableSource is a DataSource that can be drained.  Draining a source
+// should flush any unsent data, and then close any remaining Watch writers.
+type DrainableSource interface {
+	DataSource
+	Drain()
+}
