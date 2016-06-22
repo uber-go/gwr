@@ -34,7 +34,9 @@ var errRawSource = errors.New("raw sources unsupported, only item data sources")
 //
 // For example to send a source to stdandard output:
 //     rep := NewPrintfReporter(someSource, fmt.Printf)
-//     rep.Start() // TODO: error check
+//     if err := rep.Start(); err != nil {
+//         panic(err)
+//     }
 //     defer rep.Stop()
 type FormattedReporter interface {
 	source.ItemWatcher
