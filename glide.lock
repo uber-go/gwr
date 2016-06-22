@@ -1,6 +1,8 @@
-hash: bed765da2127646b76aafc551c153306d294e1569a93eded9a26639b1d74c739
-updated: 2016-05-20T13:43:53.815898766-07:00
+hash: a5d53147ee7e2c07a281cc2f6eefb128f8a7d573f4114bdaf31d40c8922a59d2
+updated: 2016-06-22T14:49:05.186857658-07:00
 imports:
+- name: github.com/codahale/metrics
+  version: dbbe66805ef99a7bdc12d2e4f2c543e11b3a19e1
 - name: github.com/golang/lint
   version: c7bacac2b21ca01afa1dee0acf64df3ce047c28f
 - name: github.com/stretchr/testify
