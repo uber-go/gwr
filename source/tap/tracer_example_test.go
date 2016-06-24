@@ -75,7 +75,7 @@ func tracedFib(n int, scope *tap.TraceScope) (r int) {
 func fib(n int) int {
 	if scope := fibTracer.MaybeScope("wrapper"); scope != nil {
 		scope.Open(n)
-		r := tracedFib(5, scope)
+		r := tracedFib(n, scope)
 		scope.CloseCall(r)
 		return r
 	}
