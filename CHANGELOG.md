@@ -1,3 +1,6 @@
+v0.6.5
+- Fixed a bug in tracer that was causing it to active even with no watchers.
+
 v0.6.4
 - Fix potential problems with marshaled data source state under concurrency
 - Fixed text output from /meta/nouns
