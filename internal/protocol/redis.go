@@ -176,10 +176,6 @@ func (rm *respModel) handleMonitor(rconn *resp.RedisConnection, vc *resp.ValueCo
 		return fmt.Errorf("no watches set, monitor likely to be uninteresting")
 	}
 
-	if err := rconn.WriteSimpleString("OK"); err != nil {
-		return err
-	}
-
 	go rm.doWatch(rconn)
 
 	return nil
