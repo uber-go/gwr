@@ -90,10 +90,10 @@ func TestNounDataSource_Watch(t *testing.T) {
 		tmpl: nil,
 	}, nil)), "no add error expected")
 	assertJSONScanLine(t, sc,
-		`{"name":"/foo","type":"add","info":{"formats":["json"],"attrs":null}}`,
+		`{"name":"/foo","type":"add","info":{"formats":["json","text"],"attrs":null}}`,
 		"should get an add event for /foo")
 	assert.Equal(t, getText(), "Data Sources:\n"+
-		"/foo formats: [json]\n"+
+		"/foo formats: [json text]\n"+
 		"/meta/nouns formats: [json text]\n")
 
 	// add another data source, observe it
@@ -106,7 +106,7 @@ func TestNounDataSource_Watch(t *testing.T) {
 		"should get an add event for /bar")
 	assert.Equal(t, getText(), "Data Sources:\n"+
 		"/bar formats: [json text]\n"+
-		"/foo formats: [json]\n"+
+		"/foo formats: [json text]\n"+
 		"/meta/nouns formats: [json text]\n")
 
 	// remove the /foo data source, observe it
