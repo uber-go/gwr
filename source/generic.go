@@ -123,3 +123,31 @@ type GenericDataFormat interface {
 	// FrameItem wraps a MarshalItem-ed byte buffer for a watch stream.
 	FrameItem([]byte) ([]byte, error)
 }
+
+// GenericDataFormatFunc is a convenience for implement simple single-function
+// formats with newline framing.
+type GenericDataFormatFunc func(interface{}) ([]byte, error)
+
+// MarshalGet calls the wrapped function.
+func (fn GenericDataFormatFunc) MarshalGet(item interface{}) ([]byte, error) {
+	return fn(item)
+}
+
+// MarshalInit calls the wrapped function.
+func (fn GenericDataFormatFunc) MarshalInit(item interface{}) ([]byte, error) {
+	return fn(item)
+}
+
+// MarshalItem calls the wrapped function.
+func (fn GenericDataFormatFunc) MarshalItem(item interface{}) ([]byte, error) {
+	return fn(item)
+}
+
+// FrameItem wraps a MarshalItem-ed byte buffer for a watch stream.
+func (fn GenericDataFormatFunc) FrameItem(buf []byte) ([]byte, error) {
+	n := len(buf)
+	frame := make([]byte, n+1)
+	copy(frame, buf)
+	frame[n] = '\n'
+	return frame, nil
+}
