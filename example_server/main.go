@@ -21,13 +21,19 @@
 package main
 
 import (
+	"expvar"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
+	// _ "github.com/codahale/metrics/runtime"
+
+	"github.com/codahale/metrics"
 	gwr "github.com/uber-go/gwr"
+	gwrExpvar "github.com/uber-go/gwr/source/expvar"
 	"github.com/uber-go/gwr/source/tap"
 )
 
@@ -35,6 +41,11 @@ func main() {
 	if err := gwr.Configure(nil); err != nil {
 		log.Fatal(err)
 	}
+
+	gwr.AddGenericDataSource(gwrExpvar.NewPoller(expvar.KeyValue{
+		Key:   "metrics",
+		Value: expvar.Get("metrics"),
+	}, time.Second))
 
 	resLog := &resLogger{handler: http.DefaultServeMux}
 	reqLog := &reqLogger{handler: resLog}
@@ -45,6 +56,8 @@ func main() {
 	fb := fibber{
 		naive: tap.AddNewTracer("fib/naive"),
 	}
+	metrics.Counter("Fib.Calls").AddN(0)
+	metrics.Counter("Fib.Reqs").AddN(0)
 	http.HandleFunc("/fib/naive", fb.handleNaive)
 
 	log.Fatal(http.ListenAndServe(":8080", reqLog))
@@ -52,6 +65,10 @@ func main() {
 
 type fibber struct {
 	naive *tap.Tracer
+
+	// TODO: maybe should use atomics or a lock for these?
+	calls int64
+	reqs  int64
 }
 
 func (fb *fibber) handleNaive(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +80,7 @@ func (fb *fibber) handleNaive(w http.ResponseWriter, r *http.Request) {
 		"host":   r.Host,
 	})
 	defer trc.Close()
+	metrics.Counter("Fib.Reqs").Add()
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
@@ -78,15 +96,16 @@ func (fb *fibber) handleNaive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	n := naiveFib(i, trc)
+	n := fb.naiveFib(i, trc)
 	io.WriteString(w, fmt.Sprintf("fib(%d) = %d\n", i, n))
 }
 
-func naiveFib(i int, trc *tap.TraceScope) (n int) {
+func (fb *fibber) naiveFib(i int, trc *tap.TraceScope) (n int) {
 	sc := trc.Sub("naiveFib").Open(i)
 	defer func() {
 		sc.Close(n)
 	}()
+	metrics.Counter("Fib.Calls").Add()
 
 	if i <= 0 {
 		n = 0
@@ -98,6 +117,6 @@ func naiveFib(i int, trc *tap.TraceScope) (n int) {
 		return
 	}
 
-	n = naiveFib(i-1, sc) + naiveFib(i-2, sc)
+	n = fb.naiveFib(i-1, sc) + fb.naiveFib(i-2, sc)
 	return
 }
