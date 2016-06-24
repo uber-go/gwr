@@ -83,11 +83,11 @@ func fib(n int) int {
 }
 
 func ExampleTracer() {
-	// this one won't be traced since there is no watcher yet
-	fib(4)
-
 	// this just makes trace ids stable for the test
 	tap.ResetTraceID()
+
+	// this one won't be traced since there is no watcher yet
+	fib(4)
 
 	// this causes fibTracer's output to get printed to stdout; the use here is
 	// more complicated than you'd have in a real program to get stable test
