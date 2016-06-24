@@ -91,9 +91,11 @@ func NewDataSource(
 	}
 
 	// convenience templated text protocol
-	if txtsrc, ok := src.(source.TextTemplatedSource); ok && formats["text"] == nil {
-		if tt := txtsrc.TextTemplate(); tt != nil && formats["text"] == nil {
-			formats["text"] = NewTemplatedMarshal(tt)
+	if formats["text"] == nil {
+		if txtsrc, ok := src.(source.TextTemplatedSource); ok {
+			if tt := txtsrc.TextTemplate(); tt != nil {
+				formats["text"] = NewTemplatedMarshal(tt)
+			}
 		}
 	}
 
