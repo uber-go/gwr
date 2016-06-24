@@ -87,7 +87,7 @@ func ExampleTracer() {
 	tap.ResetTraceID()
 
 	// this one won't be traced since there is no watcher yet
-	fib(4)
+	fmt.Printf("the 4th fib is %v\n", fib(4))
 
 	// this causes fibTracer's output to get printed to stdout; the use here is
 	// more complicated than you'd have in a real program to get stable test
@@ -101,7 +101,7 @@ func ExampleTracer() {
 	defer rep.Stop()
 
 	// this one will be traced since there's now a watcher
-	fib(5)
+	fmt.Printf("the 5th fib is %v\n", fib(5))
 
 	// this flushes and stops all watchers on the reported source; otherwise
 	// this function returns too quickly for even one of the emitted trace
@@ -109,9 +109,11 @@ func ExampleTracer() {
 	rep.Source().(source.DrainableSource).Drain()
 
 	// this one won't be traced since Drain deactivated the tracer
-	fib(6)
+	fmt.Printf("the 6th fib is %v\n", fib(6))
 
 	// Output:
+	// the 4th fib is 5
+	// the 5th fib is 8
 	// /tap/trace/fib: --> DATE TIME_0 [1::1] wrapper: 5
 	// /tap/trace/fib: --> DATE TIME_1 [1:1:2] fib(5)
 	// /tap/trace/fib: --> DATE TIME_2 [1:2:3] fib(4)
@@ -144,6 +146,7 @@ func ExampleTracer() {
 	// /tap/trace/fib: <-- DATE TIME_29 [1:2:12] return 3
 	// /tap/trace/fib: <-- DATE TIME_30 [1:1:2] return 8
 	// /tap/trace/fib: <-- DATE TIME_31 [1::1] return 8
+	// the 6th fib is 13
 }
 
 // timeElider is here just to normalize output for the test
