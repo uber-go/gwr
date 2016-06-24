@@ -21,6 +21,7 @@
 package marshaled
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"sort"
@@ -67,6 +68,16 @@ type DataSource struct {
 	itemsChan chan []interface{}
 }
 
+func stringIt(item interface{}) ([]byte, error) {
+	var s string
+	if ss, ok := item.(fmt.Stringer); ok {
+		s = ss.String()
+	} else {
+		s = fmt.Sprintf("%+v", item)
+	}
+	return []byte(s), nil
+}
+
 // NewDataSource creates a DataSource for a given format-agnostic data source
 // and a map of marshalers
 func NewDataSource(
@@ -91,10 +102,17 @@ func NewDataSource(
 	}
 
 	// convenience templated text protocol
-	if txtsrc, ok := src.(source.TextTemplatedSource); ok && formats["text"] == nil {
-		if tt := txtsrc.TextTemplate(); tt != nil && formats["text"] == nil {
-			formats["text"] = NewTemplatedMarshal(tt)
+	if formats["text"] == nil {
+		if txtsrc, ok := src.(source.TextTemplatedSource); ok {
+			if tt := txtsrc.TextTemplate(); tt != nil {
+				formats["text"] = NewTemplatedMarshal(tt)
+			}
 		}
+	}
+
+	// default to just string-ing it
+	if formats["text"] == nil {
+		formats["text"] = source.GenericDataFormatFunc(stringIt)
 	}
 
 	ds := &DataSource{
