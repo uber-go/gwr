@@ -71,7 +71,7 @@ func (src *Tracer) emit(item interface{}) bool {
 // Active returns true if there any watchers; when not active, all emitted data
 // is dropped.  This should be used by call sites to control scope creation.
 func (src *Tracer) Active() bool {
-	return src.watcher != nil
+	return src.watcher != nil && src.watcher.Active()
 }
 
 // Name returns the gwr source name of the tracer.
