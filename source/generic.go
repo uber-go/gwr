@@ -111,10 +111,10 @@ type WatchInitableDataSource interface {
 // protocol for the watch stream.  Any marshaling or framing error should cause
 // a break in any watch streams subscribed to this format.
 type GenericDataFormat interface {
-	// Marshal serializes the passed data from GenericDataSource.Get.
+	// MarshalGet serializes the passed data from GenericDataSource.Get.
 	MarshalGet(interface{}) ([]byte, error)
 
-	// Marshal serializes the passed data from GenericDataSource.GetInit.
+	// MarshalInit serializes the passed data from GenericDataSource.GetInit.
 	MarshalInit(interface{}) ([]byte, error)
 
 	// MarshalItem serializes data passed to a GenericDataWatcher.
