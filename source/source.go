@@ -107,3 +107,6 @@ type DrainableSource interface {
 	DataSource
 	Drain()
 }
+
+// TODO: should add a ClosableSource so that DataSources.Remove can close any
+// active watchers etc.
