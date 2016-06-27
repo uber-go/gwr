@@ -144,6 +144,8 @@ type TraceScope struct {
 	parent *TraceScope
 	id     uint64
 	name   string
+	begin  time.Time
+	end    time.Time
 }
 
 func newScope(trc *Tracer, parent *TraceScope, name string) *TraceScope {
@@ -159,6 +161,20 @@ func newScope(trc *Tracer, parent *TraceScope, name string) *TraceScope {
 		sc.top = sc
 	}
 	return sc
+}
+
+// BeginTime returns the time of the first scope.Open or scope.OpenCall (only
+// one of these should be called, but the first one wins for begin time
+// anyhow).  Sub-scope times do not affect their parent scope's begin/end.
+func (sc *TraceScope) BeginTime() time.Time {
+	return sc.begin
+}
+
+// EndTime returns the time of the last scope.Close, scope.CloseCall,
+// scope.Error, or scope.ErrorName.  Sub-scope times do not affect their parent
+// scope's begin/end.
+func (sc *TraceScope) EndTime() time.Time {
+	return sc.end
 }
 
 // Sub opens and returns a new sub-scope.
@@ -202,8 +218,21 @@ func (sc *TraceScope) CloseCall(rets ...interface{}) *TraceScope {
 }
 
 func (sc *TraceScope) emitRecord(t recordType, args interface{}) *TraceScope {
+	now := time.Now()
+	switch t {
+	case beginRecord:
+		if sc.begin.IsZero() {
+			sc.begin = now
+		}
+	case endRecord:
+		fallthrough
+	case errRecord:
+		if sc.end.IsZero() || now.After(sc.end) {
+			sc.end = now
+		}
+	}
 	rec := record{
-		Time:    time.Now(),
+		Time:    now,
 		Type:    t,
 		ScopeId: sc.top.id,
 		SpanId:  sc.id,
