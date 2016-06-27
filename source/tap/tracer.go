@@ -163,6 +163,11 @@ func newScope(trc *Tracer, parent *TraceScope, name string) *TraceScope {
 	return sc
 }
 
+// Active returns true if the tracer is active, false otherwise.
+func (sc *TraceScope) Active() bool {
+	return sc.trc.Active()
+}
+
 // Root returns the root scope.
 func (sc *TraceScope) Root() *TraceScope {
 	return sc.top
