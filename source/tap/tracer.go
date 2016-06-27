@@ -36,8 +36,64 @@ const (
 )
 
 // Tracer implements a gwr data source that allows easy tracing of scope data,
-// such as function calls; another useful use case for go programs is tracing
-// each work unit handled by a worker goroutine
+// such as function calls, or rounds of a worker goroutine's loop.
+//
+// Tracers should be created for each area of the application that can be
+// traced.  This could be as simple as creating a package-level tracer:
+//
+//     package foo
+//
+//     import "github.com/uber-go/gwr/source"
+//
+//     tracer := source.AddNewTracer("foo")
+//
+// Tracers can also be attached to parts of the application:
+//
+//     type Thing struct {
+//         t *Tracer
+//     }
+//
+//     func NewThing() *Thing {
+//         // ...
+//         t.tracer = source.AddNewTracer(fmt.Sprintf("foo/%v", someThingIdentifier))
+//         // ...
+//     }
+//
+// If Things are not the same life-cycle as the application, then they should
+// have teardown code to remove their tracer data sources:
+//
+//     gwr.DefaultDataSources.Remove(t.tracer.Name())
+//
+// You can then proceed to trace your functions and methods.  First decide
+// where/what you want to start tracing.  this will probably be one or more
+// exported functions or methods called by your user.
+//
+// Within these entry points use Tracer.Scope to create a root scope.  Pass
+// this scope along to any called functions that you want to trace.  Functions
+// that get passed a scope should start off by calling scope.Sub to create
+// their own scope.
+//
+// Within a traced function, start off by calling scope.OpenCall to note the
+// start of function.  While doing normal work within a traced function, you
+// may call scope.Info to note log any additional data.  Finally once done the
+// traced function should call one of scope.CloseCall, scope.Error or
+// scope.ErrorName.
+//
+// If a traced function has more than one possible way to error, it should use
+// scope.ErrorName to describe what failed.  Furthermore, a traced function may
+// call scope.ErrorName more than once if it has recoverable errors, or
+// otherwise makes progress around errors.
+//
+// You can similarly trace a worker goroutine:
+//
+//     ch := make(chan int)
+//     go func() {
+//         for n := range ch {
+//             scope := tracer.Scope("n <- workerChan").Open(n)
+//             // do something...
+//             scope.Close()
+//         }
+//     }()
 type Tracer struct {
 	name    string
 	watcher source.GenericDataWatcher
