@@ -163,6 +163,16 @@ func newScope(trc *Tracer, parent *TraceScope, name string) *TraceScope {
 	return sc
 }
 
+// Root returns the root scope.
+func (sc *TraceScope) Root() *TraceScope {
+	return sc.top
+}
+
+// Parent returns the parent scope; this is nil for root scopes..
+func (sc *TraceScope) Parent() *TraceScope {
+	return sc.parent
+}
+
 // BeginTime returns the time of the first scope.Open or scope.OpenCall (only
 // one of these should be called, but the first one wins for begin time
 // anyhow).  Sub-scope times do not affect their parent scope's begin/end.
