@@ -1,3 +1,20 @@
+v0.7.0
+- Many improvements to the tracer
+  - Ability to walk up the scope chain with the scope.Root() and scope.Parent()
+    methods.
+  - Track begin and end time for every scope.
+  - Added a standalone example fibonacci test
+- Added a default stringer text format for sources that define no text template.
+- Added a simple formatted reporter, which can be used to wire up a GWR source
+  to a file or log stream (any Printf-like func).
+- Removed the extraneous "OK" response from the RESP monitor command; this
+  makes it easier to process JSON output.
+- Added ability to drain a source; this allows a test, or other non-daemon
+  program, to block until one or more GWR sources have finished sending any
+  pending items to their watcher(s).
+- Added a convenience implementation of marshaled data source format around a
+  single function.
+
 v0.6.5
 - Fixed a bug in tracer that was causing it to active even with no watchers.
 
