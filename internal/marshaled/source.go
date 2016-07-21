@@ -61,7 +61,7 @@ type DataSource struct {
 	maxWait     time.Duration
 
 	procs     sync.WaitGroup
-	watchLock sync.Mutex
+	watchLock sync.RWMutex
 	watchers  map[string]*marshaledWatcher
 	active    bool
 	itemChan  chan interface{}
@@ -144,9 +144,9 @@ func NewDataSource(
 // Active returns true if there are any active watchers, false otherwise.  If
 // Active returns false, so will any calls to HandleItem and HandleItems.
 func (mds *DataSource) Active() bool {
-	mds.watchLock.Lock()
+	mds.watchLock.RLock()
 	r := mds.active && mds.itemChan != nil && mds.itemsChan != nil
-	mds.watchLock.Unlock()
+	mds.watchLock.RUnlock()
 	return r
 }
 
@@ -305,10 +305,10 @@ func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan
 
 loop:
 	for {
-		mds.watchLock.Lock()
+		mds.watchLock.RLock()
 		active := mds.active
 		watchers := mds.watchers
-		mds.watchLock.Unlock()
+		mds.watchLock.RUnlock()
 		if !active {
 			break loop
 		}
