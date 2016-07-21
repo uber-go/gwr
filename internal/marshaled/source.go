@@ -383,6 +383,7 @@ func (mds *DataSource) HandleItem(item interface{}) bool {
 	case <-time.After(mds.maxWait):
 		mds.watchLock.Lock()
 		if !mds.active {
+			mds.watchLock.Unlock()
 			return false
 		}
 		mds.active = false
@@ -406,6 +407,7 @@ func (mds *DataSource) HandleItems(items []interface{}) bool {
 	case <-time.After(mds.maxWait):
 		mds.watchLock.Lock()
 		if !mds.active {
+			mds.watchLock.Unlock()
 			return false
 		}
 		mds.active = false
