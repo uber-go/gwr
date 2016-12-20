@@ -1,3 +1,8 @@
+v0.7.1
+
+- Deadlock fix
+- Make `(*"internal/marshaled".DataSource).Active` less contentious
+
 v0.7.0
 - Many improvements to the tracer
   - Ability to walk up the scope chain with the scope.Root() and scope.Parent()
