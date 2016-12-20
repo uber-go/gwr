@@ -49,15 +49,12 @@ type reqInfo struct {
 }
 
 func (rl *reqLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if watcher := rl.watcher; watcher != nil {
-		info := reqInfo{
+	if watcher := rl.watcher; watcher.Active() {
+		watcher.HandleItem(reqInfo{
 			Method: r.Method,
 			Path:   r.URL.Path,
 			Query:  r.URL.RawQuery,
-		}
-		if !watcher.HandleItem(info) {
-			rl.watcher = nil
-		}
+		})
 	}
 	rl.handler.ServeHTTP(w, r)
 }
