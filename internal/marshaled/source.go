@@ -304,7 +304,7 @@ func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan
 	stop := false
 
 loop:
-	for {
+	for !stop {
 		mds.watchLock.RLock()
 		active := mds.active
 		watchers := mds.watchers
@@ -326,7 +326,6 @@ loop:
 			}
 			if !any {
 				stop = true
-				break loop
 			}
 
 		case items, ok := <-itemsChan:
@@ -342,7 +341,6 @@ loop:
 			}
 			if !any {
 				stop = true
-				break loop
 			}
 
 		default:
