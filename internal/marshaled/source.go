@@ -303,20 +303,19 @@ func (mds *DataSource) processItemChan(itemChan chan interface{}, itemsChan chan
 
 	stop := false
 
-loop:
 	for !stop && (itemChan != nil || itemsChan != nil) {
 		mds.watchLock.RLock()
 		active := mds.active
 		watchers := mds.watchers
 		mds.watchLock.RUnlock()
 		if !active {
-			break loop
+			break
 		}
 		select {
 		case item, ok := <-itemChan:
 			if !ok {
 				itemChan = nil
-				continue loop
+				continue
 			}
 			any := false
 			for _, watcher := range watchers {
@@ -331,7 +330,7 @@ loop:
 		case items, ok := <-itemsChan:
 			if !ok {
 				itemsChan = nil
-				continue loop
+				continue
 			}
 			any := false
 			for _, watcher := range watchers {
