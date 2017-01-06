@@ -1,3 +1,7 @@
+v0.7.2
+
+- Fixed cpu spin in generec data source support code.
+
 v0.7.1
 
 - Deadlock fix
